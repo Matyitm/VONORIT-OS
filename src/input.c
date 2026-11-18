@@ -9,6 +9,7 @@
 #include "net_inet.h"
 #include "mm.h"
 #include "elf.h"
+#include "sched.h"
 #include "pe.h"
 #include "ui.h"
 #include "timer.h"
@@ -93,6 +94,9 @@ static void terminal_parse_command(void)
 		if(terminal_starts(terminal_command,"ping ")){uint8_t ip[4]={0};uint8_t pt=0;uint16_t k=5;while(terminal_command[k]&&pt<4){char c=terminal_command[k++];if(c=='.')++pt;else if(c>='0'&&c<='9')ip[pt]=(uint8_t)(ip[pt]*10u+(uint8_t)(c-'0'));}uint32_t rtt=0;if(pt==3&&net_ping_ipv4(ip,&rtt)){terminal_append_text("\nREPLY: BYTES=32 TIME=");char b[16];uint8_t n=0;while(rtt&&n<15){b[n++]=(char)('0'+rtt%10u);rtt/=10u;}while(n)terminal_append_text((char[]){b[--n],0});terminal_append_text("MS");}else terminal_append_text("\nREQUEST TIMED OUT");return;}
 		if(terminal_starts(terminal_command,"nslookup ")){uint8_t ip[4];if(net_dns_resolve(terminal_command+9,ip)){terminal_append_text("\nIP: ");for(int k=0;k<4;++k){char b[8];uint8_t n=0,v=ip[k];if(!v)b[n++]='0';while(v){b[n++]=(char)('0'+v%10u);v/=10u;}while(n)terminal_append_text((char[]){b[--n],0});if(k<3)terminal_append_text(".");}}else terminal_append_text("\nDNS FAILED");return;}
 	if(terminal_starts(terminal_command,"curl ")){char buf[512];if(net_http_get(terminal_command+5,buf,sizeof(buf))){terminal_append_text("\n");uint16_t col=0,ln=0;for(uint16_t i=0;buf[i]&&ln<4;++i){if(buf[i]==10){++ln;col=0;ui_terminal_append(10);}else{ui_terminal_append(buf[i]);if(++col>=30){++ln;col=0;if(ln<4)ui_terminal_append(10);}}}}else terminal_append_text("\nHTTP FAILED");return;}
+		if(command_equals(terminal_command,"ps")){for(uint8_t i=0;i<SCHED_MAX_PROCS;++i){const sched_proc_t* p=sched_get_proc(i);if(p){terminal_append_text("\nPID ");char b[16];uint8_t n=0;uint64_t v=p->pid;if(!v)b[n++]='0';while(v){b[n++]=(char)('0'+v%10u);v/=10u;}while(n)terminal_append_text((char[]){b[--n],0});terminal_append_text(": ");terminal_append_text(p->name);terminal_append_text(" TICKS=");n=0;v=p->ticks;if(!v)b[n++]='0';while(v){b[n++]=(char)('0'+v%10u);v/=10u;}while(n)terminal_append_text((char[]){b[--n],0});}}return;}
+	if(terminal_starts(terminal_command,"spawn ")){char nm[32];uint16_t i=6,j=0;while(terminal_command[i]&&j<31)nm[j++]=terminal_command[i++];nm[j]=0;uint8_t dt[512];uint16_t ln=vfs_read_bytes(nm,dt,sizeof(dt));if(!ln)terminal_append_text("\nFILE NOT FOUND");else{int pid=sched_spawn_elf(nm,dt,ln);if(pid>0){terminal_append_text("\nSPAWNED PID ");char c[2]={(char)('0'+pid),0};terminal_append_text(c);}else terminal_append_text("\nSPAWN FAILED");}return;}
+	if(terminal_starts(terminal_command,"kill ")){uint16_t pid=(uint16_t)(terminal_command[5]-'0');if(sched_kill(pid))terminal_append_text("\nKILLED");else terminal_append_text("\nINVALID PID");return;}
 	if(command_equals(terminal_command,"meminfo"))
 	{
 		uint64_t total=pmm_total_pages();uint64_t used=pmm_used_pages();uint64_t free_pages=total-used;

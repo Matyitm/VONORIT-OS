@@ -14,6 +14,7 @@
 #include "net.h"
 #include "mm.h"
 #include "gdt.h"
+#include "sched.h"
 #include "syscall.h"
 #include "vfs.h"
 
@@ -300,6 +301,7 @@ void kernel_main64(uint32_t multiboot_magic, uint32_t multiboot_information)
 	pci_init();
 	pmm_init();
 	gdt_init();
+	sched_init();
 	syscall_initialize();
 	vfs_init();
 	net_init();
