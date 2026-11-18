@@ -4,6 +4,8 @@
 #include "interrupts64.h"
 #include "framebuffer.h"
 #include "ui.h"
+#include "pci.h"
+#include "net.h"
 #include "idt.h"
 #include "input.h"
 #include "timer.h"
@@ -291,7 +293,9 @@ void kernel_main64(uint32_t multiboot_magic, uint32_t multiboot_information)
 	}
 
 	serial_write("Framebuffer found; initializing modular desktop\r\n");
+	pci_init();
 	vfs_init();
+	net_init();
 	ui_initialize(&framebuffer);
 	idt_initialize(&framebuffer);
 	timer_initialize();

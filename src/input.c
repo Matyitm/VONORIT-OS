@@ -4,6 +4,8 @@
 #include "ui.h"
 #include "vfs.h"
 #include "ata.h"
+#include "pci.h"
+#include "net.h"
 #include "ui.h"
 
 static void terminal_append_text(const char* text);
@@ -41,6 +43,26 @@ static void terminal_print_vfs(void)
 			ui_terminal_append('\n');terminal_append_text(file->name);
 		}
 	}
+}
+
+static void terminal_append_hex16(uint16_t value)
+{
+	static const char hex[]="0123456789ABCDEF";
+	char text[5];
+	text[0]=hex[(value>>12)&15u];text[1]=hex[(value>>8)&15u];text[2]=hex[(value>>4)&15u];text[3]=hex[value&15u];text[4]=0;
+	terminal_append_text(text);
+}
+
+static void terminal_print_mac(void)
+{
+	const uint8_t* mac=net_get_mac();
+	static const char hex[]="0123456789ABCDEF";
+	char text[18];
+	for(uint8_t i=0u;i<6u;++i)
+	{
+		text[i*3u]=hex[mac[i]>>4];text[i*3u+1u]=hex[mac[i]&15u];text[i*3u+2u]=(i==5u?' ':':');
+	}
+	text[17]=0;terminal_append_text(text);
 }
 
 static void terminal_parse_command(void)
@@ -81,6 +103,23 @@ static void terminal_parse_command(void)
 	{
 		ui_open_winver();
 	}
+	else if(command_equals(terminal_command,"lspci"))
+	{
+		for(uint8_t i=0u;i<pci_count();++i)
+		{
+			const pci_device_t* device=pci_device(i);
+			if(device==0) continue;
+			ui_terminal_append('\n');
+			terminal_append_hex16((uint16_t)device->bus);ui_terminal_append(':');terminal_append_hex16((uint16_t)device->slot);ui_terminal_append('.');ui_terminal_append((char)('0'+device->func));ui_terminal_append(' ');
+			terminal_append_hex16(device->vendor_id);ui_terminal_append(':');terminal_append_hex16(device->device_id);ui_terminal_append(' ');terminal_append_text(pci_class_name(device->class_code,device->subclass));
+		}
+	}
+	else if(command_equals(terminal_command,"netinfo"))
+	{
+		terminal_append_text("\nDriver: ");terminal_append_text(net_driver_name());
+		terminal_append_text(net_link_status()?"\nLink: Up":"\nLink: Unknown");
+		terminal_append_text("\nMAC: ");terminal_print_mac();
+	}
 }
 
 static framebuffer_t* input_fb;
@@ -115,7 +154,7 @@ static void execute_command(void)
 {
 	terminal_command[terminal_command_length]=0;
 	terminal_parse_command();
-	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir") || terminal_starts(terminal_command,"cat ") || terminal_starts(terminal_command,"write ") || terminal_starts(terminal_command,"notepad") || command_equals(terminal_command,"sync") || command_equals(terminal_command,"diskinfo") || command_equals(terminal_command,"winver"))
+	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir") || terminal_starts(terminal_command,"cat ") || terminal_starts(terminal_command,"write ") || terminal_starts(terminal_command,"notepad") || command_equals(terminal_command,"sync") || command_equals(terminal_command,"diskinfo") || command_equals(terminal_command,"winver") || command_equals(terminal_command,"lspci") || command_equals(terminal_command,"netinfo"))
 	{
 		terminal_command_length=0;terminal_command[0]=0;return;
 	}

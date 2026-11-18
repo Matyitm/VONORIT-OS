@@ -417,10 +417,7 @@ void ui_notepad_backspace(void)
 	ui_redraw();
 }
 
-int ui_notepad_is_active(void)
-{
-	return ui_active_window==UI_WINDOW_NOTEPAD && ui_windows[UI_WINDOW_NOTEPAD].visible!=0;
-}
+int ui_notepad_is_active(void){return ui_active_window==UI_WINDOW_NOTEPAD && ui_windows[UI_WINDOW_NOTEPAD].visible && !ui_windows[UI_WINDOW_NOTEPAD].minimized;}
 
 void ui_open_winver(void)
 {
@@ -431,7 +428,7 @@ void ui_open_winver(void)
 	else if(ui_theme==UI_THEME_WHISTLER) copy_winver_text(winver_theme_name,"THEME: WHISTLER");
 	else copy_winver_text(winver_theme_name,"THEME: LONGHORN");
 	copy_winver_text(winver_disk_name,ata_attached()?"DISK: ATTACHED":"DISK: RAM-ONLY");
-	ui_windows[UI_WINDOW_WINVER].visible=1;
+	ui_windows[UI_WINDOW_WINVER].x=240;ui_windows[UI_WINDOW_WINVER].y=140;ui_windows[UI_WINDOW_WINVER].width=320;ui_windows[UI_WINDOW_WINVER].height=180;ui_windows[UI_WINDOW_WINVER].visible=1;
 	ui_windows[UI_WINDOW_WINVER].minimized=0;
 	ui_bring_to_front(UI_WINDOW_WINVER);
 	ui_redraw();
@@ -446,6 +443,7 @@ void ui_update_mouse(int x,int y,int left_button,int left_pressed)
 {
 	if(left_pressed)
 	{
+		if(start_open) return;
 		ui_window_t* save_window=&ui_windows[UI_WINDOW_NOTEPAD];
 		if(save_window->visible && !save_window->minimized && x>=save_window->x+save_window->width-80 && x<save_window->x+save_window->width-20 && y>=save_window->y+34 && y<save_window->y+50)
 		{
@@ -507,6 +505,18 @@ void ui_update_mouse(int x,int y,int left_button,int left_pressed)
 	}
 }
 
+static const char* terminal_visible_tail(const char* text)
+{
+	int lines = 0;
+	int i = 0;
+	while (text[i] != 0) { if (text[i] == '\n') ++lines; ++i; }
+	if (lines <= 13) return text;
+	int skip = lines - 13;
+	i = 0;
+	while (text[i] != 0 && skip > 0) { if (text[i] == '\n') --skip; ++i; }
+	return text + i;
+}
+
 static void ui_draw_window_state(ui_window_t* window)
 {
 	if(!window->visible || window->minimized) return;
@@ -555,8 +565,9 @@ static void ui_draw_window_state(ui_window_t* window)
 		}
 		return;
 	}
+	const char* body=(window==&ui_windows[UI_WINDOW_TERMINAL])?terminal_visible_tail(terminal_text):window->body;
 	draw_window((uint32_t)window->x,(uint32_t)window->y,(uint32_t)window->width,
-		(uint32_t)window->height,window->title,window->body,active);
+		(uint32_t)window->height,window->title,body,active);
 }
 
 static void ui_initialize_window_states(void)
@@ -587,7 +598,7 @@ static void ui_initialize_window_states(void)
 
 static void ui_draw_window_states(void)
 {
-	for(int z=1;z<ui_next_z;++z)
+	for(int z=1;z<=ui_next_z+10;++z)
 		for(int index=0;index<UI_WINDOW_COUNT;++index)
 			if(ui_windows[index].z_order==z) ui_draw_window_state(&ui_windows[index]);
 }
@@ -683,6 +694,24 @@ void ui_handle_click(int x,int y)
 {
 	invalidate_cursor();
 	if(ui_start_contains(x,y)){start_open=!start_open;ui_redraw();return;}
+	if(start_open)
+	{
+		uint32_t base=ui_fb->height-322u;
+		if(x>=6 && x<=226 && y>=(int)base && y<=(int)(ui_fb->height-42u))
+		{
+			int rel=y-(int)base;
+			start_open=0;
+			if(rel>=40 && rel<70){ui_restore_window(UI_WINDOW_TERMINAL);return;}
+			if(rel>=70 && rel<100){ui_restore_window(UI_WINDOW_FILES);return;}
+			if(rel>=100 && rel<130){ui_restore_window(UI_WINDOW_ABOUT);return;}
+			if(rel>=130 && rel<160){ui_open_notepad("NOTES.TXT");return;}
+			if(rel>=160 && rel<190){ui_set_theme(UI_THEME_CHICAGO);return;}
+			if(rel>=190 && rel<220){ui_set_theme(UI_THEME_WHISTLER);return;}
+			if(rel>=220 && rel<250){ui_set_theme(UI_THEME_LONGHORN);return;}
+			if(rel>=250 && rel<=280){ui_open_winver();return;}
+		}
+		start_open=0;ui_redraw();return;
+	}
 	uint32_t task_y=ui_fb->height-42u;
 	if(y>=((int)task_y+7) && y<=((int)task_y+35))
 	{
@@ -692,23 +721,9 @@ void ui_handle_click(int x,int y)
 			if(x>=((int)task_x)&&x<((int)task_x+150))
 			{
 				ui_restore_window(index);
-				start_open=0;
 				return;
 			}
 		}
-	}
-	if(start_open)
-	{
-		uint32_t base=ui_fb->height-322u;
-		if(y>=((int)base+48)&&y<=((int)base+68)){ui_restore_window(UI_WINDOW_TERMINAL);start_open=0;return;}
-		if(y>=((int)base+78)&&y<=((int)base+98)){ui_restore_window(UI_WINDOW_FILES);start_open=0;return;}
-		if(y>=((int)base+108)&&y<=((int)base+128)){ui_restore_window(UI_WINDOW_ABOUT);start_open=0;return;}
-		if(y>=((int)base+138)&&y<=((int)base+158)){ui_open_notepad("NOTES.TXT");start_open=0;return;}
-		if(y>=((int)base+168)&&y<=((int)base+188)){ui_set_theme(UI_THEME_CHICAGO);start_open=0;return;}
-		if(y>=((int)base+198)&&y<=((int)base+218)){ui_set_theme(UI_THEME_WHISTLER);start_open=0;return;}
-		if(y>=((int)base+228)&&y<=((int)base+248)){ui_set_theme(UI_THEME_LONGHORN);start_open=0;return;}
-		if(y>=((int)base+258)&&y<=((int)base+278)){ui_open_winver();start_open=0;return;}
-		start_open=0;ui_redraw();
 	}
 }
 
