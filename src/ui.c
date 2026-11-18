@@ -7,7 +7,8 @@
 #include "timer.h"
 
 #define UI_WINVER 4
-#define UI_WINDOW_COUNT 5
+#define UI_WINDOW_COUNT 6
+#define UI_WINDOW_USERAPP 5
 #define UI_WINDOW_WINVER 4
 #define UI_WINDOW_NOTEPAD 3
 #define UI_WINDOW_ABOUT 2
@@ -18,6 +19,8 @@ extern uint64_t timer_get_seconds(void);
 extern void ui_open_winver(void);
 extern timer_datetime_t timer_get_datetime(void);
 
+static char userapp_title[32];
+static char userapp_body[256];
 static char winver_theme_name[16];
 static char winver_disk_name[16];
 static uint64_t winver_uptime_seconds;
@@ -256,6 +259,7 @@ static void draw_taskbar(void)
 
 	for(int index=0;index<UI_WINDOW_COUNT;++index)
 	{
+		if(index>=4 && !ui_windows[index].visible) continue;
 		uint32_t task_x=100u+(uint32_t)index*150u;
 		uint8_t r=220u,g=220u,b=220u;
 		if(ui_windows[index].visible && ui_active_window==index){r=240u;g=240u;b=240u;}
@@ -419,6 +423,22 @@ void ui_notepad_backspace(void)
 
 int ui_notepad_is_active(void){return ui_active_window==UI_WINDOW_NOTEPAD && ui_windows[UI_WINDOW_NOTEPAD].visible && !ui_windows[UI_WINDOW_NOTEPAD].minimized;}
 
+void ui_open_user_window(const char* title, const char* body)
+{
+	uint16_t i=0u; while(title && title[i] && i<31u){userapp_title[i]=title[i];++i;} userapp_title[i]=0;
+	uint16_t j=0u; while(body && body[j] && j<255u){userapp_body[j]=body[j];++j;} userapp_body[j]=0;
+	ui_windows[UI_WINDOW_USERAPP].title=userapp_title[0]?userapp_title:"USER APP";
+	ui_windows[UI_WINDOW_USERAPP].body=userapp_body;
+	ui_windows[UI_WINDOW_USERAPP].x=220;
+	ui_windows[UI_WINDOW_USERAPP].y=120;
+	ui_windows[UI_WINDOW_USERAPP].width=340;
+	ui_windows[UI_WINDOW_USERAPP].height=170;
+	ui_windows[UI_WINDOW_USERAPP].visible=1;
+	ui_windows[UI_WINDOW_USERAPP].minimized=0;
+	ui_bring_to_front(UI_WINDOW_USERAPP);
+	ui_redraw();
+}
+
 void ui_open_winver(void)
 {
 	winver_uptime_seconds=timer_get_seconds();
@@ -578,15 +598,15 @@ static void ui_initialize_window_states(void)
 	if(window_width>280u) window_width=280u;
 	uint32_t window_y=88u;
 	uint32_t window_h=(ui_theme==UI_THEME_LONGHORN)?200u:205u;
-	const char* titles[5]={"TERMINAL","FILES","ABOUT","NOTEPAD","WINVER"};
-	const char* bodies[5]={terminal_text[0]?terminal_text:"VONORIT SHELL\nREADY","HOME\nDOCUMENTS\nPROGRAMS","VONORIT OS\nHYBRID DESKTOP","",""};
+	const char* titles[6]={"TERMINAL","FILES","ABOUT","NOTEPAD","WINVER","USER APP"};
+	const char* bodies[6]={terminal_text[0]?terminal_text:"VONORIT SHELL\nREADY","HOME\nDOCUMENTS\nPROGRAMS","VONORIT OS\nHYBRID DESKTOP","","",userapp_body};
 	for(int index=0;index<UI_WINDOW_COUNT;++index)
 	{
 		ui_windows[index].x=(int)(index==UI_WINDOW_NOTEPAD?margin+gap:margin+(window_width+gap)*index);
 		ui_windows[index].y=(int)window_y;
 		ui_windows[index].width=(int)window_width;
 		ui_windows[index].height=(int)window_h;
-		ui_windows[index].visible=(index==UI_WINDOW_NOTEPAD || index==UI_WINDOW_WINVER)?0:1;
+		ui_windows[index].visible=(index==UI_WINDOW_NOTEPAD || index==UI_WINDOW_WINVER || index==UI_WINDOW_USERAPP)?0:1;
 		ui_windows[index].minimized=0;
 		ui_windows[index].z_order=index+1;
 		ui_windows[index].title=titles[index];
@@ -717,7 +737,8 @@ void ui_handle_click(int x,int y)
 	{
 		for(int index=0;index<UI_WINDOW_COUNT;++index)
 		{
-			uint32_t task_x=100u+(uint32_t)index*150u;
+			if(index>=4 && !ui_windows[index].visible) continue;
+		uint32_t task_x=100u+(uint32_t)index*150u;
 			if(x>=((int)task_x)&&x<((int)task_x+150))
 			{
 				ui_restore_window(index);

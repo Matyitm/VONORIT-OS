@@ -32,6 +32,7 @@ void ui_notepad_append(char character);
 void ui_notepad_backspace(void);
 int ui_notepad_is_active(void);
 void ui_open_winver(void);
+void ui_open_user_window(const char* title, const char* body);
 int ui_winver_is_active(void);
 void ui_render_cursor(int x, int y);
 void ui_restore_cursor(int x, int y);

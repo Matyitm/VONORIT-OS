@@ -89,6 +89,7 @@ static void terminal_parse_command(void)
 		else if(!pe_info(data,length))terminal_append_text("\nInvalid PE32+ executable");
 		return;
 	}
+		if(terminal_starts(terminal_command,"ping ")){uint8_t ip[4]={0};uint8_t pt=0;uint16_t k=5;while(terminal_command[k]&&pt<4){char c=terminal_command[k++];if(c=='.')++pt;else if(c>='0'&&c<='9')ip[pt]=(uint8_t)(ip[pt]*10u+(uint8_t)(c-'0'));}uint32_t rtt=0;if(pt==3&&net_ping_ipv4(ip,&rtt)){terminal_append_text("\nREPLY: BYTES=32 TIME=");char b[16];uint8_t n=0;while(rtt&&n<15){b[n++]=(char)('0'+rtt%10u);rtt/=10u;}while(n)terminal_append_text((char[]){b[--n],0});terminal_append_text("MS");}else terminal_append_text("\nREQUEST TIMED OUT");return;}
 	if(command_equals(terminal_command,"meminfo"))
 	{
 		uint64_t total=pmm_total_pages();uint64_t used=pmm_used_pages();uint64_t free_pages=total-used;
@@ -146,7 +147,7 @@ static void terminal_parse_command(void)
 			terminal_append_hex16(device->vendor_id);ui_terminal_append(':');terminal_append_hex16(device->device_id);ui_terminal_append(' ');terminal_append_text(pci_class_name(device->class_code,device->subclass));
 		}
 	}
-	else if(command_equals(terminal_command,"netinfo"))
+	else if(command_equals(terminal_command,"netinfo")||terminal_starts(terminal_command,"ping "))
 	{
 		terminal_append_text("\nDriver: ");terminal_append_text(net_driver_name());
 		terminal_append_text(net_link_status()?"\nLink: Up":"\nLink: Unknown");

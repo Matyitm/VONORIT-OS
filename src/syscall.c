@@ -19,6 +19,12 @@ uint64_t syscall_dispatch(uint64_t number,uint64_t arg1,uint64_t arg2,uint64_t a
 		for(uint64_t i=0u;i<arg2;++i) ui_terminal_append(text[i]);
 		return arg2;
 	}
+		if(number==SYS_CREATE_WINDOW)
+	{
+		if(arg1<0x00400000u || arg1>=0x00800000u || arg2<0x00400000u || arg2>=0x00800000u) return (uint64_t)-1;
+		ui_open_user_window((const char*)(uintptr_t)arg1,(const char*)(uintptr_t)arg2);
+		return 0u;
+	}
 	if(number==SYS_GET_TICKS) return timer_get_ticks();
 	if(number==SYS_GET_UPTIME) return timer_get_seconds();
 	if(number==SYS_EXIT)
