@@ -1,7 +1,9 @@
 BITS 32
 default abs
 
+global pml4_table
 global pdpt_table
+global pd_tables
 global high_pd_tables
 
 section .multiboot

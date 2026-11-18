@@ -14,6 +14,41 @@ isr_exception:
 
 section .text
 
+global isr128_stub
+extern syscall_dispatch
+extern syscall_exit_was_requested
+extern gdt_restore_asm
+
+isr128_stub:
+ push r11
+ push r10
+ push r9
+ push r8
+ push rdi
+ push rsi
+ push rdx
+ push rcx
+ push rax
+ mov rcx,[rsp+16]
+ mov rdx,[rsp+24]
+ mov rsi,[rsp+32]
+ mov rdi,[rsp]
+ call syscall_dispatch
+ mov [rsp],rax
+ call syscall_exit_was_requested
+ test rax,rax
+ jnz gdt_restore_asm
+ pop rax
+ pop rcx
+ pop rdx
+ pop rsi
+ pop rdi
+ pop r8
+ pop r9
+ pop r10
+ pop r11
+ iretq
+
 global irq12_stub
 %assign vector 0
 %rep 32

@@ -46,6 +46,7 @@ extern void exception_stub_24(void); extern void exception_stub_25(void);
 extern void exception_stub_26(void); extern void exception_stub_27(void);
 extern void exception_stub_28(void); extern void exception_stub_29(void);
 extern void exception_stub_30(void); extern void exception_stub_31(void);
+extern void isr128_stub(void);
 extern void irq0_stub(void); extern void irq1_stub(void); extern void irq12_stub(void);
 
 static void outb(uint16_t port, uint8_t value)
@@ -110,6 +111,12 @@ void idt_initialize(framebuffer_t* framebuffer)
 	for(uint16_t i=0;i<256u;++i) set_gate((uint8_t)i, exceptions[i<32u?i:0u]);
 	for(uint8_t i=0;i<32u;++i) set_gate(i,exceptions[i]);
 	set_gate(32u,irq0_stub); set_gate(33u,irq1_stub); set_gate(44u,irq12_stub);
+	{
+		uint64_t address=(uint64_t)(uintptr_t)isr128_stub;
+		struct idt_entry* entry=&idt[128];
+		entry->offset_low=(uint16_t)address;entry->selector=0x10u;entry->ist=0u;entry->type_attributes=0xEEu;
+		entry->offset_middle=(uint16_t)(address>>16);entry->offset_high=(uint32_t)(address>>32);entry->reserved=0u;
+	}
 	idtr.limit=(uint16_t)(sizeof(idt)-1u); idtr.base=(uint64_t)(uintptr_t)idt;
 	__asm__ volatile("cli; lidt %0"::"m"(idtr));
 

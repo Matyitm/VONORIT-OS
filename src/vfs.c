@@ -74,6 +74,7 @@ void vfs_init(void)
 	(void)vfs_write("BETA.LOG","Desktop, RTC, VFS and Notepad milestone.");
 	(void)vfs_write("SYSTEM.INI","[SYSTEM]\nDISPLAY=FRAMEBUFFER");
 	(void)vfs_write("NOTES.TXT","Write notes with Notepad.");
+	if(vfs_read_bytes("HELLO.ELF",0,0)==0u){uint8_t h[197]={ 127,69,76,70,2,1,1,0,0,0,0,0,0,0,0,0,2,0,62,0,1,0,0,0,120,0,64,0,0,0,0,0,64,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,64,0,56,0,1,0,0,0,0,0,0,0,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,64,0,0,0,0,0,0,0,64,0,0,0,0,0,197,0,0,0,0,0,0,0,197,0,0,0,0,0,0,0,0,16,0,0,0,0,0,0,72,199,192,1,0,0,0,72,199,199,168,0,64,0,72,199,198,29,0,0,0,205,128,72,199,192,60,0,0,0,72,49,255,205,128,144,144,144,144,144,144,144,144,144,144,144,144,144,72,69,76,76,79,32,70,82,79,77,32,82,73,78,71,32,51,32,85,83,69,82,32,77,79,68,69,33,10 };(void)vfs_write_bytes("HELLO.ELF",h,197u);}
 	copy_parent(files[0].parent,"HOME");
 	copy_parent(files[1].parent,"DOCUMENTS");
 	copy_parent(files[2].parent,"PROGRAMS");
@@ -112,6 +113,35 @@ uint8_t vfs_write(const char* name,const char* text)
 void vfs_list(void)
 {
 	/* UI and terminal consumers enumerate vfs_file(). */
+}
+
+uint8_t vfs_write_bytes(const char* name,const uint8_t* data,uint16_t length)
+{
+	if(name==0 || data==0 || length>=VFS_CONTENT_SIZE) return 0u;
+	uint8_t index=VFS_MAX_FILES;
+	for(uint8_t i=0u;i<VFS_MAX_FILES;++i)
+	{
+		if(files[i].used!=0u && names_equal(files[i].name,name)){index=i;break;}
+		if(index==VFS_MAX_FILES && files[i].used==0u) index=i;
+	}
+	if(index==VFS_MAX_FILES)return 0u;
+	files[index].used=1u;copy_name(files[index].name,name);
+	if(files[index].parent[0]==0)copy_parent(files[index].parent,"DOCUMENTS");
+	for(uint16_t i=0u;i<length;++i)files[index].content[i]=(char)data[i];
+	files[index].length=length;(void)vfs_sync_to_disk();return 1u;
+}
+
+uint16_t vfs_read_bytes(const char* name,uint8_t* buffer,uint16_t capacity)
+{
+	if(buffer==0)return 0u;
+	for(uint8_t i=0u;i<VFS_MAX_FILES;++i)
+		if(files[i].used!=0u && names_equal(files[i].name,name))
+		{
+			uint16_t length=files[i].length;if(length>capacity)length=capacity;
+			for(uint16_t j=0u;j<length;++j)buffer[j]=(uint8_t)files[i].content[j];
+			return length;
+		}
+	return 0u;
 }
 
 uint8_t vfs_count(void)

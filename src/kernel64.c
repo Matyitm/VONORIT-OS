@@ -10,7 +10,11 @@
 #include "input.h"
 #include "timer.h"
 #include "ata.h"
-#include "vfs.h"
+#include "pci.h"
+#include "net.h"
+#include "mm.h"
+#include "gdt.h"
+#include "syscall.h"
 #include "vfs.h"
 
 #define VGA_WIDTH 80
@@ -294,6 +298,9 @@ void kernel_main64(uint32_t multiboot_magic, uint32_t multiboot_information)
 
 	serial_write("Framebuffer found; initializing modular desktop\r\n");
 	pci_init();
+	pmm_init();
+	gdt_init();
+	syscall_initialize();
 	vfs_init();
 	net_init();
 	ui_initialize(&framebuffer);

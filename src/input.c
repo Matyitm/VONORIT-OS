@@ -6,6 +6,11 @@
 #include "ata.h"
 #include "pci.h"
 #include "net.h"
+#include "mm.h"
+#include "elf.h"
+#include "pe.h"
+#include "ui.h"
+#include "timer.h"
 #include "ui.h"
 
 static void terminal_append_text(const char* text);
@@ -67,6 +72,33 @@ static void terminal_print_mac(void)
 
 static void terminal_parse_command(void)
 {
+	if(terminal_starts(terminal_command,"run ") || terminal_starts(terminal_command,"exec "))
+	{
+		uint16_t i=(uint16_t)(terminal_starts(terminal_command,"run ")?4u:5u),j=0u;
+		char name[32];while(terminal_command[i]!=0 && j<31u)name[j++]=terminal_command[i++];name[j]=0;
+		uint8_t data[1024];uint16_t length=vfs_read_bytes(name,data,sizeof(data));
+		if(length==0u){terminal_append_text("\nFile not found");}
+		else if(!elf_load_and_run(data,length)){terminal_append_text("\nInvalid ELF64 binary");}
+		return;
+	}
+	if(terminal_starts(terminal_command,"peinfo "))
+	{
+		uint16_t i=7u,j=0u;char name[32];while(terminal_command[i]!=0 && j<31u)name[j++]=terminal_command[i++];name[j]=0;
+		uint8_t data[1024];uint16_t length=vfs_read_bytes(name,data,sizeof(data));
+		if(length==0u)terminal_append_text("\nFile not found");
+		else if(!pe_info(data,length))terminal_append_text("\nInvalid PE32+ executable");
+		return;
+	}
+	if(command_equals(terminal_command,"meminfo"))
+	{
+		uint64_t total=pmm_total_pages();uint64_t used=pmm_used_pages();uint64_t free_pages=total-used;
+		terminal_append_text("\nRAM: ");
+		uint64_t mb=total*4u/1024u;char text[32];uint64_t pos=0u;
+		while(mb!=0u&&pos<31u){text[pos++]=(char)('0'+mb%10u);mb/=10u;}while(pos>0u)terminal_append_text((char[]){text[--pos],0});
+		terminal_append_text(" MB total / ");
+		mb=free_pages*4u/1024u;pos=0u;while(mb!=0u&&pos<31u){text[pos++]=(char)('0'+mb%10u);mb/=10u;}while(pos>0u)terminal_append_text((char[]){text[--pos],0});
+		terminal_append_text(" MB free");return;
+	}
 	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir"))
 	{
 		terminal_print_vfs();
@@ -154,7 +186,7 @@ static void execute_command(void)
 {
 	terminal_command[terminal_command_length]=0;
 	terminal_parse_command();
-	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir") || terminal_starts(terminal_command,"cat ") || terminal_starts(terminal_command,"write ") || terminal_starts(terminal_command,"notepad") || command_equals(terminal_command,"sync") || command_equals(terminal_command,"diskinfo") || command_equals(terminal_command,"winver") || command_equals(terminal_command,"lspci") || command_equals(terminal_command,"netinfo"))
+	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir") || terminal_starts(terminal_command,"cat ") || terminal_starts(terminal_command,"write ") || terminal_starts(terminal_command,"run ") || terminal_starts(terminal_command,"exec ") || terminal_starts(terminal_command,"peinfo ") || command_equals(terminal_command,"meminfo") || terminal_starts(terminal_command,"notepad") || command_equals(terminal_command,"sync") || command_equals(terminal_command,"diskinfo") || command_equals(terminal_command,"winver") || command_equals(terminal_command,"lspci") || command_equals(terminal_command,"netinfo"))
 	{
 		terminal_command_length=0;terminal_command[0]=0;return;
 	}

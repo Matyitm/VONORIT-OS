@@ -118,8 +118,26 @@ $(BUILD)/pci.o: src/pci.c src/pci.h | $(BUILD)
 $(BUILD)/net.o: src/net.c src/net.h src/pci.h | $(BUILD)
 	$(CC64) $(CFLAGS64) -c $< -o $@
 
-$(KERNEL64): $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o $(BUILD)/ata.o $(BUILD)/pci.o $(BUILD)/net.o linker64.ld
-	$(LD64) -T linker64.ld -ffreestanding -O2 -nostdlib -m64 -no-pie -Wl,--build-id=none -o $@ $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o $(BUILD)/ata.o $(BUILD)/pci.o $(BUILD)/net.o
+$(BUILD)/mm.o: src/mm.c src/mm.h | $(BUILD)
+	$(CC64) $(CFLAGS64) -c $< -o $@
+
+$(BUILD)/gdt.o: src/gdt.c src/gdt.h | $(BUILD)
+	$(CC64) $(CFLAGS64) -c $< -o $@
+
+$(BUILD)/gdt_asm.o: src/gdt_asm.asm | $(BUILD)
+	$(AS) -f elf64 $< -o $@
+
+$(BUILD)/syscall.o: src/syscall.c src/syscall.h src/timer.h src/ui.h src/gdt.h | $(BUILD)
+	$(CC64) $(CFLAGS64) -c $< -o $@
+
+$(BUILD)/elf.o: src/elf.c src/elf.h src/gdt.h src/ui.h | $(BUILD)
+	$(CC64) $(CFLAGS64) -c $< -o $@
+
+$(BUILD)/pe.o: src/pe.c src/pe.h src/ui.h | $(BUILD)
+	$(CC64) $(CFLAGS64) -c $< -o $@
+
+$(KERNEL64): $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o $(BUILD)/ata.o $(BUILD)/pci.o $(BUILD)/net.o $(BUILD)/mm.o $(BUILD)/gdt.o $(BUILD)/gdt_asm.o $(BUILD)/syscall.o $(BUILD)/elf.o $(BUILD)/pe.o linker64.ld
+	$(LD64) -T linker64.ld -ffreestanding -O2 -nostdlib -m64 -no-pie -Wl,--build-id=none -o $@ $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o $(BUILD)/ata.o $(BUILD)/pci.o $(BUILD)/net.o $(BUILD)/mm.o $(BUILD)/gdt.o $(BUILD)/gdt_asm.o $(BUILD)/syscall.o $(BUILD)/elf.o $(BUILD)/pe.o
 
 iso64: $(ISO64)
 

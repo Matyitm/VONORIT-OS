@@ -27,5 +27,7 @@ uint8_t vfs_load_from_disk(void);
 uint8_t vfs_is_persistent(void);
 uint8_t vfs_used_slots(void);
 uint8_t vfs_free_slots(void);
+uint8_t vfs_write_bytes(const char* name,const uint8_t* data,uint16_t length);
+uint16_t vfs_read_bytes(const char* name,uint8_t* buffer,uint16_t capacity);
 
 #endif
