@@ -10,3 +10,11 @@ x64/
 *.idb
 *.obj
 *.tlog
+x64/
+VONORIT-OS/x64/
+*.pdb
+*.idb
+*.obj
+*.tlog
+*.lastbuildstate
+*.unsuccessfulbuild
