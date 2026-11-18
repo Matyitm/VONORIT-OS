@@ -22,5 +22,10 @@ const char* vfs_read(const char* name);
 uint8_t vfs_write(const char* name, const char* text);
 uint8_t vfs_count(void);
 const vfs_file_t* vfs_file(uint8_t index);
+uint8_t vfs_sync_to_disk(void);
+uint8_t vfs_load_from_disk(void);
+uint8_t vfs_is_persistent(void);
+uint8_t vfs_used_slots(void);
+uint8_t vfs_free_slots(void);
 
 #endif

@@ -4,18 +4,25 @@ VONORIT-OS is an experimental, modern-first hybrid operating-system platform wri
 
 ## Current milestone
 
-- Freestanding C kernel entry point for 32-bit bootstrap and x86_64 paths
-- Multiboot-compatible GRUB boot
-- Linker script and kernel stack
-- 32-bit and x86_64 ISO image generation
-- 32-bit and x86_64 QEMU launch targets
-- First x86_64 framebuffer desktop prototype
+- Freestanding 32-bit bootstrap and x86_64 long-mode kernel
+- Multiboot-compatible GRUB boot and 32-bit/x86_64 ISO targets
+- 800x600 RAM backbuffer GUI with interrupt-safe presentation
+- Chicago, Whistler, and Longhorn beta desktop themes
+- Draggable, focusable, Z-ordered Terminal, Files, About, Notepad, and WINVER windows
+- IDT/PIC exception and hardware IRQ handling
+- PS/2 keyboard and mouse support
+- PIT 100 Hz uptime timer and CMOS RTC live clock
+- In-memory RAM VFS with interactive Files browser and Notepad
+- Optional primary ATA PIO disk persistence for VFS data
+- 32-bit VGA fallback remains available
 
-This repository currently contains only the initial 32-bit x86 kernel foundation. It is not yet compatible with Windows, Linux, or macOS applications. The compatibility architecture is documented in [docs/architecture.md](docs/architecture.md), and target status is tracked in [docs/compatibility-matrix.md](docs/compatibility-matrix.md).
+The repository includes a usable kernel desktop prototype, not a production-complete compatibility OS. Windows, Linux, POSIX, macOS, executable loading, processes, user mode, networking, and complete application compatibility remain staged work. The compatibility architecture is documented in [docs/architecture.md](docs/architecture.md), and target status is tracked in [docs/compatibility-matrix.md](docs/compatibility-matrix.md).
 
-The primary production target is now x86_64. The x86_64 path enables long mode with identity-mapped 2 MiB pages and currently displays kernel startup text. The 32-bit kernel remains available as a bootstrap and legacy validation target.
+The primary x86_64 path enables long mode with identity-mapped pages and a framebuffer desktop. The 32-bit kernel remains available for bootstrap and legacy validation.
 
-The first graphical milestone draws a desktop, taskbar, and three built-in demo program windows: Terminal, Files, and About. These are currently kernel-rendered demonstrations; real applications require user mode, processes, a filesystem, keyboard/mouse input, and an executable loader.
+Applications are currently kernel-rendered demonstrations: Terminal, Files, Notepad, About, and WINVER. Real user-space applications require memory protection, scheduling, system calls, an executable loader, and IPC.
+
+Terminal commands include `help`, `ver`, `clear`/`cls`, `uptime`/`time`, `ls`/`dir`, `cat`, `write`, `notepad`, `sync`, `diskinfo`, `winver`, and theme commands.
 
 ## Toolchain
 
@@ -58,14 +65,16 @@ make CROSS=i686-elf-
 
 ## Roadmap
 
-1. Complete the x86_64 bootable kernel milestone and add automated image checks.
-2. Add x86_64 interrupts, timers, keyboard/mouse input, and a hardware-abstraction layer.
-3. Implement physical/virtual memory, scheduling, processes, user mode, IPC, and a stable system-call ABI.
-4. Add storage, filesystems, PCI, input, display, networking, and security services.
-5. Convert the demo windows into user-space programs with an ELF loader and GUI IPC protocol.
-6. Implement a measured POSIX/Linux compatibility subset and its conformance tests.
-7. Implement PE loading and a user-space Windows API runtime, beginning with console applications.
-8. Add graphics, audio, networking, and installer/runtime integration for larger application classes.
-9. Add broad DOS emulation—including PC DOS, MS-DOS, DR-DOS/Novell DOS/OpenDOS, FreeDOS, DOS Plus/Concurrent DOS, DOS/V, DOS extenders, and common DOS gaming hardware—then add legacy Windows emulation and virtualization for complete Linux, Windows, and authorized macOS guest environments.
+1. Complete automated x86_64 boot, serial, disk, and desktop smoke tests.
+2. Implement physical/virtual memory, heap allocation, scheduling, processes, user mode, IPC, and a stable system-call ABI.
+3. Expand storage and partition/filesystem support beyond the RAM VFS and ATA PIO prototype.
+4. Add PCI enumeration, keyboard/mouse abstraction, display, networking, and security services.
+5. Convert kernel demo applications into ELF-based user-space programs with GUI IPC.
+6. Implement a measured POSIX/Linux compatibility subset and conformance tests.
+7. Implement PE loading and a Windows API runtime, beginning with console applications.
+8. Add graphics, audio, networking, and installer/runtime integration.
+9. Add DOS emulation and authorized Windows/Linux/macOS guest virtualization.
 
-Compatibility claims require automated tests on a defined hardware profile. A loader or emulator that starts an application is not, by itself, full operating-system compatibility.
+This milestone remains experimental and does not claim complete Windows, Linux, POSIX, or macOS compatibility. Native compatibility work uses public specifications and clean-room implementations. Compatibility claims require repeatable automated validation on a documented hardware profile.
+
+The compatibility architecture is documented in [docs/architecture.md](docs/architecture.md), and target status is tracked in [docs/compatibility-matrix.md](docs/compatibility-matrix.md).

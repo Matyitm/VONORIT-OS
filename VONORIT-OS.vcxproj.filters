@@ -58,6 +58,12 @@
     <ClCompile Include="src\timer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\vfs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ata.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\interrupts64.h">
@@ -76,6 +82,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vfs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,6 +3,31 @@
 
 #include "ui.h"
 #include "vfs.h"
+#include "ata.h"
+#include "timer.h"
+
+#define UI_WINVER 4
+#define UI_WINDOW_COUNT 5
+#define UI_WINDOW_WINVER 4
+#define UI_WINDOW_NOTEPAD 3
+#define UI_WINDOW_ABOUT 2
+#define UI_WINDOW_FILES 1
+#define UI_WINDOW_TERMINAL 0
+
+extern uint64_t timer_get_seconds(void);
+extern void ui_open_winver(void);
+extern timer_datetime_t timer_get_datetime(void);
+
+static char winver_theme_name[16];
+static char winver_disk_name[16];
+static uint64_t winver_uptime_seconds;
+static uint8_t winver_used_slots;
+static uint8_t winver_free_slots;
+
+static void copy_winver_text(char* destination,const char* source)
+{
+	uint16_t i=0u;while(source[i]!=0 && i<15u){destination[i]=source[i];++i;}destination[i]=0;
+}
 
 static uint8_t backbuffer[800u*600u*3u];
 static framebuffer_t* ui_fb;
@@ -20,11 +45,6 @@ static int cursor_saved = 0;
 static int cursor_x;
 static int cursor_y;
 
-#define UI_WINDOW_TERMINAL 0
-#define UI_WINDOW_FILES 1
-#define UI_WINDOW_ABOUT 2
-#define UI_WINDOW_NOTEPAD 3
-#define UI_WINDOW_COUNT 4
 
 typedef struct
 {
@@ -41,7 +61,7 @@ typedef struct
 
 static ui_window_t ui_windows[UI_WINDOW_COUNT];
 static int ui_active_window=-1;
-static int ui_next_z=4;
+static int ui_next_z=6;
 static int ui_drag_window=-1;
 static int ui_drag_offset_x;
 static int ui_drag_offset_y;
@@ -253,8 +273,8 @@ static void draw_taskbar(void)
 static void draw_start_menu(void)
 {
 	if(!start_open) return;
-	uint32_t y=ui_fb->height-42u-250u;
-	uint32_t x=6u,w=220u,h=250u;
+	uint32_t y=ui_fb->height-42u-280u;
+	uint32_t x=6u,w=220u,h=280u;
 	ui_fill_rect(ui_fb,x,y,w,h,210u,220u,230u);
 	border(ui_fb,x,y,w,h,1);
 	ui_fill_rect(ui_fb,x,y,36u,h,30u,80u,150u);
@@ -266,6 +286,7 @@ static void draw_start_menu(void)
 	ui_draw_text(ui_fb,x+48u,y+168u,"THEME: CHICAGO",2u,20u,30u,50u);
 	ui_draw_text(ui_fb,x+48u,y+198u,"THEME: WHISTLER",2u,20u,30u,50u);
 	ui_draw_text(ui_fb,x+48u,y+228u,"THEME: LONGHORN",2u,20u,30u,50u);
+	ui_draw_text(ui_fb,x+48u,y+258u,"WINVER",2u,20u,30u,50u);
 }
 
 static void draw_watermark(void)
@@ -401,6 +422,26 @@ int ui_notepad_is_active(void)
 	return ui_active_window==UI_WINDOW_NOTEPAD && ui_windows[UI_WINDOW_NOTEPAD].visible!=0;
 }
 
+void ui_open_winver(void)
+{
+	winver_uptime_seconds=timer_get_seconds();
+	winver_used_slots=vfs_used_slots();
+	winver_free_slots=vfs_free_slots();
+	if(ui_theme==UI_THEME_CHICAGO) copy_winver_text(winver_theme_name,"THEME: CHICAGO");
+	else if(ui_theme==UI_THEME_WHISTLER) copy_winver_text(winver_theme_name,"THEME: WHISTLER");
+	else copy_winver_text(winver_theme_name,"THEME: LONGHORN");
+	copy_winver_text(winver_disk_name,ata_attached()?"DISK: ATTACHED":"DISK: RAM-ONLY");
+	ui_windows[UI_WINDOW_WINVER].visible=1;
+	ui_windows[UI_WINDOW_WINVER].minimized=0;
+	ui_bring_to_front(UI_WINDOW_WINVER);
+	ui_redraw();
+}
+
+int ui_winver_is_active(void)
+{
+	return ui_active_window==UI_WINDOW_WINVER && ui_windows[UI_WINDOW_WINVER].visible!=0;
+}
+
 void ui_update_mouse(int x,int y,int left_button,int left_pressed)
 {
 	if(left_pressed)
@@ -480,6 +521,27 @@ static void ui_draw_window_state(ui_window_t* window)
 		ui_draw_text(ui_fb,(uint32_t)window->x+18u,(uint32_t)window->y+58u,notepad_text,1u,25u,35u,55u);
 		return;
 	}
+	if(window==&ui_windows[UI_WINDOW_WINVER])
+	{
+		draw_window((uint32_t)window->x,(uint32_t)window->y,(uint32_t)window->width,
+			(uint32_t)window->height,"WINVER","",active);
+		uint32_t y=(uint32_t)window->y+48u;
+		ui_draw_text(ui_fb,(uint32_t)window->x+18u,y,"VONORIT OS HYBRID EDITION",1u,20u,30u,50u);
+		ui_draw_text(ui_fb,(uint32_t)window->x+18u,y+14u,"BUILD 2026.X86_64",1u,20u,30u,50u);
+		ui_draw_text(ui_fb,(uint32_t)window->x+18u,y+30u,winver_theme_name,1u,20u,30u,50u);
+		ui_draw_text(ui_fb,(uint32_t)window->x+18u,y+44u,winver_disk_name,1u,20u,30u,50u);
+		char uptime[32]={"UPTIME: "};
+		uint8_t pos=8u;uint64_t value=winver_uptime_seconds;
+		uint64_t hours=value/3600u;uint64_t minutes=(value/60u)%60u;uint64_t seconds=value%60u;
+		uptime[pos++]=(char)('0'+hours/10u);uptime[pos++]=(char)('0'+hours%10u);uptime[pos++]=':';
+		uptime[pos++]=(char)('0'+minutes/10u);uptime[pos++]=(char)('0'+minutes%10u);uptime[pos++]=':';
+		uptime[pos++]=(char)('0'+seconds/10u);uptime[pos++]=(char)('0'+seconds%10u);uptime[pos]=0;
+		ui_draw_text(ui_fb,(uint32_t)window->x+18u,y+58u,uptime,1u,20u,30u,50u);
+		char slots[32]={"VFS: "};slots[5]=(char)('0'+winver_used_slots/10u);slots[6]=(char)('0'+winver_used_slots%10u);
+		slots[7]='/' ;slots[8]=(char)('0'+(VFS_MAX_FILES/10u));slots[9]=(char)('0'+(VFS_MAX_FILES%10u));slots[10]=0;
+		ui_draw_text(ui_fb,(uint32_t)window->x+18u,y+72u,slots,1u,20u,30u,50u);
+		return;
+	}
 	if(window==&ui_windows[UI_WINDOW_FILES])
 	{
 		draw_window((uint32_t)window->x,(uint32_t)window->y,(uint32_t)window->width,
@@ -505,22 +567,22 @@ static void ui_initialize_window_states(void)
 	if(window_width>280u) window_width=280u;
 	uint32_t window_y=88u;
 	uint32_t window_h=(ui_theme==UI_THEME_LONGHORN)?200u:205u;
-	const char* titles[4]={"TERMINAL","FILES","ABOUT","NOTEPAD"};
-	const char* bodies[4]={terminal_text[0]?terminal_text:"VONORIT SHELL\nREADY","HOME\nDOCUMENTS\nPROGRAMS","VONORIT OS\nHYBRID DESKTOP",""};
+	const char* titles[5]={"TERMINAL","FILES","ABOUT","NOTEPAD","WINVER"};
+	const char* bodies[5]={terminal_text[0]?terminal_text:"VONORIT SHELL\nREADY","HOME\nDOCUMENTS\nPROGRAMS","VONORIT OS\nHYBRID DESKTOP","",""};
 	for(int index=0;index<UI_WINDOW_COUNT;++index)
 	{
 		ui_windows[index].x=(int)(index==UI_WINDOW_NOTEPAD?margin+gap:margin+(window_width+gap)*index);
 		ui_windows[index].y=(int)window_y;
 		ui_windows[index].width=(int)window_width;
 		ui_windows[index].height=(int)window_h;
-		ui_windows[index].visible=(index==UI_WINDOW_NOTEPAD)?0:1;
+		ui_windows[index].visible=(index==UI_WINDOW_NOTEPAD || index==UI_WINDOW_WINVER)?0:1;
 		ui_windows[index].minimized=0;
 		ui_windows[index].z_order=index+1;
 		ui_windows[index].title=titles[index];
 		ui_windows[index].body=bodies[index];
 	}
 	ui_active_window=UI_WINDOW_TERMINAL;
-	ui_next_z=5;
+	ui_next_z=6;
 }
 
 static void ui_draw_window_states(void)
@@ -610,10 +672,10 @@ void ui_draw(void)
 void ui_redraw(void){ui_draw();ui_present();}
 
 int ui_start_contains(int x,int y){uint32_t t=ui_fb->height-42u;return x>=7&&x<=89&&y>=((int)t+7)&&y<=((int)t+35);}
-int ui_start_menu_hit(int x,int y){return start_open && x>=6 && x<=226 && y>=((int)ui_fb->height-292) && y<=((int)ui_fb->height-42);}
+int ui_start_menu_hit(int x,int y){return start_open && x>=6 && x<=226 && y>=((int)ui_fb->height-322) && y<=((int)ui_fb->height-42);}
 int ui_theme_menu_hit(int x,int y){
 	if(!start_open) return 0;
-	uint32_t ybase=ui_fb->height-292u;
+	uint32_t ybase=ui_fb->height-322u;
 	if(y<(int)ybase+130||y>(int)ybase+230||x<54||x>220) return 0;
 	return 1;
 }
@@ -637,7 +699,7 @@ void ui_handle_click(int x,int y)
 	}
 	if(start_open)
 	{
-		uint32_t base=ui_fb->height-292u;
+		uint32_t base=ui_fb->height-322u;
 		if(y>=((int)base+48)&&y<=((int)base+68)){ui_restore_window(UI_WINDOW_TERMINAL);start_open=0;return;}
 		if(y>=((int)base+78)&&y<=((int)base+98)){ui_restore_window(UI_WINDOW_FILES);start_open=0;return;}
 		if(y>=((int)base+108)&&y<=((int)base+128)){ui_restore_window(UI_WINDOW_ABOUT);start_open=0;return;}
@@ -645,6 +707,7 @@ void ui_handle_click(int x,int y)
 		if(y>=((int)base+168)&&y<=((int)base+188)){ui_set_theme(UI_THEME_CHICAGO);start_open=0;return;}
 		if(y>=((int)base+198)&&y<=((int)base+218)){ui_set_theme(UI_THEME_WHISTLER);start_open=0;return;}
 		if(y>=((int)base+228)&&y<=((int)base+248)){ui_set_theme(UI_THEME_LONGHORN);start_open=0;return;}
+		if(y>=((int)base+258)&&y<=((int)base+278)){ui_open_winver();start_open=0;return;}
 		start_open=0;ui_redraw();
 	}
 }

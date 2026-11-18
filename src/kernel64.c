@@ -7,6 +7,8 @@
 #include "idt.h"
 #include "input.h"
 #include "timer.h"
+#include "ata.h"
+#include "vfs.h"
 #include "vfs.h"
 
 #define VGA_WIDTH 80

@@ -31,6 +31,8 @@ void ui_notepad_save(void);
 void ui_notepad_append(char character);
 void ui_notepad_backspace(void);
 int ui_notepad_is_active(void);
+void ui_open_winver(void);
+int ui_winver_is_active(void);
 void ui_render_cursor(int x, int y);
 void ui_restore_cursor(int x, int y);
 void ui_put_pixel(framebuffer_t* framebuffer, uint32_t x, uint32_t y,

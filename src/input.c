@@ -3,6 +3,10 @@
 #include "input.h"
 #include "ui.h"
 #include "vfs.h"
+#include "ata.h"
+#include "ui.h"
+
+static void terminal_append_text(const char* text);
 
 static uint8_t keyboard_ctrl;
 static char terminal_command[128];
@@ -12,6 +16,9 @@ static void terminal_append_text(const char* text)
 {
 	while(*text!=0){ui_terminal_append(*text++);}
 }
+
+static char to_lower_ascii(char character);
+static int command_equals(const char* left,const char* right);
 
 static uint8_t terminal_starts(const char* left,const char* right)
 {
@@ -61,6 +68,19 @@ static void terminal_parse_command(void)
 	{
 		ui_open_notepad("NOTES.TXT");
 	}
+	else if(command_equals(terminal_command,"sync"))
+	{
+		uint8_t result=vfs_sync_to_disk();
+		terminal_append_text(result?"\nVFS synced":"\nVFS RAM-ONLY");
+	}
+	else if(command_equals(terminal_command,"diskinfo"))
+	{
+		terminal_append_text(ata_attached()?"\nATA: ATTACHED":"\nATA: RAM-ONLY");
+	}
+	else if(command_equals(terminal_command,"winver"))
+	{
+		ui_open_winver();
+	}
 }
 
 static framebuffer_t* input_fb;
@@ -95,7 +115,7 @@ static void execute_command(void)
 {
 	terminal_command[terminal_command_length]=0;
 	terminal_parse_command();
-	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir") || terminal_starts(terminal_command,"cat ") || terminal_starts(terminal_command,"write ") || terminal_starts(terminal_command,"notepad"))
+	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir") || terminal_starts(terminal_command,"cat ") || terminal_starts(terminal_command,"write ") || terminal_starts(terminal_command,"notepad") || command_equals(terminal_command,"sync") || command_equals(terminal_command,"diskinfo") || command_equals(terminal_command,"winver"))
 	{
 		terminal_command_length=0;terminal_command[0]=0;return;
 	}

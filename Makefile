@@ -106,11 +106,14 @@ $(BUILD)/input.o: src/input.c src/input.h src/ui.h src/framebuffer.h | $(BUILD)
 $(BUILD)/timer.o: src/timer.c src/timer.h | $(BUILD)
 	$(CC64) $(CFLAGS64) -c $< -o $@
 
-$(BUILD)/vfs.o: src/vfs.c src/vfs.h | $(BUILD)
+$(BUILD)/vfs.o: src/vfs.c src/vfs.h src/ata.h | $(BUILD)
 	$(CC64) $(CFLAGS64) -c $< -o $@
 
-$(KERNEL64): $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o linker64.ld
-	$(LD64) -T linker64.ld -ffreestanding -O2 -nostdlib -m64 -no-pie -Wl,--build-id=none -o $@ $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o
+$(BUILD)/ata.o: src/ata.c src/ata.h | $(BUILD)
+	$(CC64) $(CFLAGS64) -c $< -o $@
+
+$(KERNEL64): $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o $(BUILD)/ata.o linker64.ld
+	$(LD64) -T linker64.ld -ffreestanding -O2 -nostdlib -m64 -no-pie -Wl,--build-id=none -o $@ $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o $(BUILD)/ata.o
 
 iso64: $(ISO64)
 
