@@ -152,25 +152,40 @@
     <None Include="README.md" />
     <None Include="src\boot.asm" />
     <None Include="src\boot64.asm" />
+    <None Include="src\gdt_asm.asm" />
     <None Include="src\interrupts64.asm" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ata.c" />
+    <ClCompile Include="src\elf.c" />
+    <ClCompile Include="src\gdt.c" />
     <ClCompile Include="src\idt.c" />
     <ClCompile Include="src\input.c" />
     <ClCompile Include="src\interrupts64.c" />
     <ClCompile Include="src\kernel.c" />
     <ClCompile Include="src\kernel64.c" />
+    <ClCompile Include="src\mm.c" />
+    <ClCompile Include="src\net.c" />
+    <ClCompile Include="src\pci.c" />
+    <ClCompile Include="src\pe.c" />
+    <ClCompile Include="src\syscall.c" />
     <ClCompile Include="src\timer.c" />
     <ClCompile Include="src\ui.c" />
     <ClCompile Include="src\vfs.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ata.h" />
+    <ClInclude Include="src\elf.h" />
     <ClInclude Include="src\framebuffer.h" />
+    <ClInclude Include="src\gdt.h" />
     <ClInclude Include="src\idt.h" />
     <ClInclude Include="src\input.h" />
     <ClInclude Include="src\interrupts64.h" />
+    <ClInclude Include="src\mm.h" />
+    <ClInclude Include="src\net.h" />
+    <ClInclude Include="src\pci.h" />
+    <ClInclude Include="src\pe.h" />
+    <ClInclude Include="src\syscall.h" />
     <ClInclude Include="src\timer.h" />
     <ClInclude Include="src\ui.h" />
     <ClInclude Include="src\vfs.h" />
