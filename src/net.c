@@ -307,3 +307,24 @@ return mac;
 return nic_link;
 
 }
+
+void net_send_frame(const uint8_t* frame, uint16_t len) { send_raw(frame, len); }
+uint16_t net_poll_frame(uint8_t* out, uint16_t max_len) { return poll_raw(out, max_len); }
+int net_resolve_arp(const uint8_t target_ip[4], uint8_t out_mac[6])
+{
+    uint8_t hop[4] = {target_ip[0], target_ip[1], target_ip[2], target_ip[3]};
+    if (!(hop[0]==10u && hop[1]==0u && hop[2]==2u)) { hop[0]=10u; hop[1]=0u; hop[2]=2u; hop[3]=2u; }
+    uint8_t p[64] = {0}, r[256];
+    for(uint8_t i=0;i<6;++i){ p[i]=0xFFu; p[6+i]=mac[i]; p[22+i]=mac[i]; }
+    p[12]=8; p[13]=6; p[15]=1; p[16]=8; p[18]=6; p[19]=4; p[21]=1;
+    for(uint8_t i=0;i<4;++i){ p[28+i]=lip[i]; p[38+i]=hop[i]; }
+    send_raw(p, 42u);
+    for(uint32_t w=0;w<400000u;++w){
+        uint16_t n=poll_raw(r, 256u);
+        if(n>=42u && r[12]==8 && r[13]==6 && r[21]==2 && r[28]==hop[0] && r[29]==hop[1] && r[30]==hop[2] && r[31]==hop[3]){
+            for(uint8_t i=0;i<6;++i) out_mac[i]=r[22+i];
+            return 1;
+        }
+    }
+    return 0;
+}

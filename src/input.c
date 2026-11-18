@@ -6,6 +6,7 @@
 #include "ata.h"
 #include "pci.h"
 #include "net.h"
+#include "net_inet.h"
 #include "mm.h"
 #include "elf.h"
 #include "pe.h"
@@ -90,6 +91,8 @@ static void terminal_parse_command(void)
 		return;
 	}
 		if(terminal_starts(terminal_command,"ping ")){uint8_t ip[4]={0};uint8_t pt=0;uint16_t k=5;while(terminal_command[k]&&pt<4){char c=terminal_command[k++];if(c=='.')++pt;else if(c>='0'&&c<='9')ip[pt]=(uint8_t)(ip[pt]*10u+(uint8_t)(c-'0'));}uint32_t rtt=0;if(pt==3&&net_ping_ipv4(ip,&rtt)){terminal_append_text("\nREPLY: BYTES=32 TIME=");char b[16];uint8_t n=0;while(rtt&&n<15){b[n++]=(char)('0'+rtt%10u);rtt/=10u;}while(n)terminal_append_text((char[]){b[--n],0});terminal_append_text("MS");}else terminal_append_text("\nREQUEST TIMED OUT");return;}
+		if(terminal_starts(terminal_command,"nslookup ")){uint8_t ip[4];if(net_dns_resolve(terminal_command+9,ip)){terminal_append_text("\nIP: ");for(int k=0;k<4;++k){char b[8];uint8_t n=0,v=ip[k];if(!v)b[n++]='0';while(v){b[n++]=(char)('0'+v%10u);v/=10u;}while(n)terminal_append_text((char[]){b[--n],0});if(k<3)terminal_append_text(".");}}else terminal_append_text("\nDNS FAILED");return;}
+	if(terminal_starts(terminal_command,"curl ")){char buf[512];if(net_http_get(terminal_command+5,buf,sizeof(buf))){terminal_append_text("\n");uint16_t col=0,ln=0;for(uint16_t i=0;buf[i]&&ln<4;++i){if(buf[i]==10){++ln;col=0;ui_terminal_append(10);}else{ui_terminal_append(buf[i]);if(++col>=30){++ln;col=0;if(ln<4)ui_terminal_append(10);}}}}else terminal_append_text("\nHTTP FAILED");return;}
 	if(command_equals(terminal_command,"meminfo"))
 	{
 		uint64_t total=pmm_total_pages();uint64_t used=pmm_used_pages();uint64_t free_pages=total-used;
