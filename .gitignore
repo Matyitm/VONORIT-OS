@@ -5,3 +5,8 @@ build/
 *.log
 .vs/
 .vscode/
+x64/
+*.pdb
+*.idb
+*.obj
+*.tlog
