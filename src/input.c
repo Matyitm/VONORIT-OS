@@ -5,6 +5,9 @@
 #include "vfs.h"
 
 static uint8_t keyboard_ctrl;
+static char terminal_command[128];
+static uint16_t terminal_command_length;
+
 static void terminal_append_text(const char* text)
 {
 	while(*text!=0){ui_terminal_append(*text++);}
@@ -68,8 +71,6 @@ static int mouse_buttons;
 static uint8_t mouse_previous_left;
 static uint8_t mouse_left_pressed;
 static uint8_t mouse_left_released;
-static char terminal_command[128];
-static uint16_t terminal_command_length;
 static uint8_t keyboard_shift;
 static uint8_t keyboard_caps_lock;
 

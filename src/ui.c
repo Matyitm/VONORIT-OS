@@ -745,7 +745,12 @@ void ui_render_cursor(int x,int y)
 			if(dx>=1 && dx<=dy && dy<=12) inside=1;
 			if(dx>dy && dx<=dy+2 && dy<=12) inside=1;
 			if(dy>12 && dx>=0 && dx<=dy-11) inside=1;
-			if(inside) ui_put_pixel(ui_fb,(uint32_t)px,(uint32_t)py,255u,255u,255u);
+			if(inside)
+			{
+				volatile uint8_t* dst=ui_fb->address+(uint32_t)py*ui_fb->pitch+(uint32_t)px*(ui_fb->bits_per_pixel/8u);
+				if(ui_fb->bits_per_pixel==24u){dst[0]=255u;dst[1]=255u;dst[2]=255u;}
+				else *(volatile uint32_t*)dst=0x00FFFFFFu;
+			}
 		}
 	}
 	ui_restore_flags(flags);
