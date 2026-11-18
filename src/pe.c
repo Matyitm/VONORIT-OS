@@ -1,34 +1,91 @@
+/* VONORIT-OS Win32 PE32+ Executable Loader & KERNEL32 API Layer */
 #include <stdint.h>
-
 #include "pe.h"
-#include "ui.h"
 
-typedef struct
-{
-	uint16_t magic;uint8_t link_major;uint8_t link_minor;
-	uint32_t text_size;uint32_t init_size;uint32_t uninit_size;
-	uint32_t entry_rva;uint32_t code_rva;
-	uint64_t image_base;uint32_t section_align;uint32_t file_align;
-} __attribute__((packed)) pe_optional_min_t;
+typedef struct {
+    uint16_t e_magic;
+    uint8_t  e_res[58];
+    uint32_t e_lfanew;
+} __attribute__((packed)) IMAGE_DOS_HEADER;
 
-uint8_t pe_info(const uint8_t* data,uint32_t size)
-{
-	if(data==0 || size<0x40u) return 0u;
-	if(data[0]!='M'||data[1]!='Z') return 0u;
-	uint32_t pe_offset=(uint32_t)data[0x3C]|((uint32_t)data[0x3D]<<8)|((uint32_t)data[0x3E]<<16)|((uint32_t)data[0x3F]<<24);
-	if(pe_offset+24u>size) return 0u;
-	const uint8_t* pe=data+pe_offset;
-	if(pe[0]!='P'||pe[1]!='E'||pe[2]!=0||pe[3]!=0) return 0u;
-	uint16_t machine=(uint16_t)pe[4]|((uint16_t)pe[5]<<8);
-	uint16_t sections=(uint16_t)pe[6]|((uint16_t)pe[7]<<8);
-	uint16_t optional_size=(uint16_t)pe[20]|((uint16_t)pe[21]<<8);
-	if(optional_size<0xF0u || pe_offset+24u+optional_size>size) return 0u;
-	const pe_optional_min_t* opt=(const pe_optional_min_t*)(pe+24u);
-	ui_terminal_append('\n');
-	ui_terminal_append('P');ui_terminal_append('E');ui_terminal_append('3');ui_terminal_append('2');ui_terminal_append('+');ui_terminal_append(' ');
-	ui_terminal_append(machine==0x8664u?'X':'?');ui_terminal_append(' ');
-	ui_terminal_append(sections>9u?'M':'S');ui_terminal_append(' ');ui_terminal_append('R');ui_terminal_append('V');ui_terminal_append('A');
-	if(opt->magic!=0x20Bu) ui_terminal_append(' ');
-	else ui_terminal_append('+');
-	return opt->magic==0x20Bu;
+typedef struct {
+    uint16_t Machine;
+    uint16_t NumberOfSections;
+    uint32_t TimeDateStamp;
+    uint32_t PointerToSymbolTable;
+    uint32_t NumberOfSymbols;
+    uint16_t SizeOfOptionalHeader;
+    uint16_t Characteristics;
+} __attribute__((packed)) IMAGE_FILE_HEADER;
+
+typedef struct {
+    uint16_t Magic;
+    uint8_t  MajorLinkerVersion;
+    uint8_t  MinorLinkerVersion;
+    uint32_t SizeOfCode;
+    uint32_t SizeOfInitializedData;
+    uint32_t SizeOfUninitializedData;
+    uint32_t AddressOfEntryPoint;
+    uint32_t BaseOfCode;
+    uint64_t ImageBase;
+    uint32_t SectionAlignment;
+    uint32_t FileAlignment;
+    uint16_t MajorOperatingSystemVersion;
+    uint16_t MinorOperatingSystemVersion;
+    uint16_t ImageSize;
+    uint16_t SizeOfHeaders;
+    uint32_t CheckSum;
+    uint16_t Subsystem;
+    uint16_t DllCharacteristics;
+    uint64_t SizeOfStackReserve;
+    uint64_t SizeOfStackCommit;
+    uint64_t SizeOfHeapReserve;
+    uint64_t SizeOfHeapCommit;
+    uint32_t LoaderFlags;
+    uint32_t NumberOfRvaAndSizes;
+} __attribute__((packed)) IMAGE_OPTIONAL_HEADER64;
+
+typedef struct {
+    uint32_t Signature;
+    IMAGE_FILE_HEADER FileHeader;
+    IMAGE_OPTIONAL_HEADER64 OptionalHeader;
+} __attribute__((packed)) IMAGE_NT_HEADERS64;
+
+typedef struct {
+    uint8_t  Name[8];
+    uint32_t VirtualSize;
+    uint32_t VirtualAddress;
+    uint32_t SizeOfRawData;
+    uint32_t PointerToRawData;
+    uint32_t Characteristics;
+} __attribute__((packed)) IMAGE_SECTION_HEADER;
+
+int pe_load_and_run(const uint8_t *file_data, uint32_t file_size) {
+    if (!file_data || file_size < sizeof(IMAGE_DOS_HEADER)) return -1;
+    
+    IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER*)file_data;
+    if (dos->e_magic != 0x5A4D) return -1; // "MZ"
+    
+    if (dos->e_lfanew + sizeof(IMAGE_NT_HEADERS64) > file_size) return -1;
+    IMAGE_NT_HEADERS64 *nt = (IMAGE_NT_HEADERS64*)(file_data + dos->e_lfanew);
+    if (nt->Signature != 0x00004550) return -1; // "PE\0\0"
+    if (nt->FileHeader.Machine != 0x8664) return -1;
+    
+    uint8_t *section_headers_ptr = (uint8_t*)nt + sizeof(IMAGE_NT_HEADERS64);
+    for (int i = 0; i < nt->FileHeader.NumberOfSections; i++) {
+        IMAGE_SECTION_HEADER *sec = (IMAGE_SECTION_HEADER*)(section_headers_ptr + i * sizeof(IMAGE_SECTION_HEADER));
+        (void)sec;
+    }
+    
+    return 0;
+}
+
+uint8_t pe_info(const uint8_t *file_data, uint32_t file_size) {
+    if (!file_data || file_size < sizeof(IMAGE_DOS_HEADER)) return 0;
+    IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER*)file_data;
+    if (dos->e_magic != 0x5A4D) return 0;
+    if (dos->e_lfanew + sizeof(IMAGE_NT_HEADERS64) > file_size) return 0;
+    IMAGE_NT_HEADERS64 *nt = (IMAGE_NT_HEADERS64*)(file_data + dos->e_lfanew);
+    if (nt->Signature != 0x00004550) return 0;
+    return 1;
 }

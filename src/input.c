@@ -78,7 +78,7 @@ static void terminal_parse_command(void)
 	{
 		uint16_t i=(uint16_t)(terminal_starts(terminal_command,"run ")?4u:5u),j=0u;
 		char name[32];while(terminal_command[i]!=0 && j<31u)name[j++]=terminal_command[i++];name[j]=0;
-		uint8_t data[1024];uint16_t length=vfs_read_bytes(name,data,sizeof(data));
+		uint8_t data[4096];uint16_t length=vfs_read_bytes(name,data,sizeof(data));
 		if(length==0u){terminal_append_text("\nFile not found");}
 		else if(!elf_load_and_run(data,length)){terminal_append_text("\nInvalid ELF64 binary");}
 		return;
@@ -86,7 +86,7 @@ static void terminal_parse_command(void)
 	if(terminal_starts(terminal_command,"peinfo "))
 	{
 		uint16_t i=7u,j=0u;char name[32];while(terminal_command[i]!=0 && j<31u)name[j++]=terminal_command[i++];name[j]=0;
-		uint8_t data[1024];uint16_t length=vfs_read_bytes(name,data,sizeof(data));
+		uint8_t data[4096];uint16_t length=vfs_read_bytes(name,data,sizeof(data));
 		if(length==0u)terminal_append_text("\nFile not found");
 		else if(!pe_info(data,length))terminal_append_text("\nInvalid PE32+ executable");
 		return;
