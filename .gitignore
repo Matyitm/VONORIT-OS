@@ -1,0 +1,7 @@
+build/
+*.o
+*.iso
+*.kernel
+*.log
+.vs/
+.vscode/

@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="VONORIT-OS.vcxproj" Id="b4153684-58d2-47e9-8681-e1c0e99cd9d8" />
+</Solution>

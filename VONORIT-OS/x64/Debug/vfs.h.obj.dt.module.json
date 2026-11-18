@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "VONORIT-OS\\x64\\Debug\\vfs.obj",
+            "outputs": [
+                "VONORIT-OS\\x64\\Debug\\vfs.h.obj.dt.module.json",
+                "VONORIT-OS\\x64\\Debug\\vfs.h.obj.dt.d.json"
+            ],
+            "requires": []
+        }
+    ]
+}

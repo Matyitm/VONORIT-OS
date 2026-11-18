@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "VONORIT-OS\\x64\\Debug\\ui.obj",
+            "outputs": [
+                "VONORIT-OS\\x64\\Debug\\ui.h.obj.dt.module.json",
+                "VONORIT-OS\\x64\\Debug\\ui.h.obj.dt.d.json"
+            ],
+            "requires": []
+        }
+    ]
+}
