@@ -578,10 +578,10 @@ static void ui_draw_window_state(ui_window_t* window)
 			(uint32_t)window->height,window->title,"",active);
 		uint32_t y=(uint32_t)window->y+48u;
 		ui_draw_text(ui_fb,(uint32_t)window->x+18u,y,"HOME DOCUMENTS PROGRAMS",1u,25u,35u,55u);
-		for(uint8_t index=0u;index<vfs_count();++index)
+		uint8_t cnt=vfs_count(),start=cnt>7u?(uint8_t)(cnt-7u):0u;for(uint8_t index=start;index<cnt;++index)
 		{
 			const vfs_file_t* file=vfs_file(index);
-			if(file!=0) ui_draw_text(ui_fb,(uint32_t)window->x+18u,y+16u*(index+1u),file->name,1u,25u,35u,55u);
+			if(file!=0) ui_draw_text(ui_fb,(uint32_t)window->x+18u,y+16u*(uint32_t)(index-start+1u),file->name,1u,25u,35u,55u);
 		}
 		return;
 	}
@@ -750,6 +750,7 @@ void ui_handle_click(int x,int y)
 
 void ui_terminal_append(char character)
 {
+	static uint16_t term_col=0u; if(character=='\n') term_col=0u; else if(++term_col>26u){ term_col=1u; ui_terminal_append('\n'); }
 	invalidate_cursor();
 	if(character=='\n' && terminal_len<sizeof(terminal_text)-1u)
 		terminal_text[terminal_len++]='\n';

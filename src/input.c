@@ -10,6 +10,7 @@
 #include "mm.h"
 #include "elf.h"
 #include "sched.h"
+#include "cc.h"
 #include "pe.h"
 #include "ui.h"
 #include "timer.h"
@@ -78,15 +79,15 @@ static void terminal_parse_command(void)
 	{
 		uint16_t i=(uint16_t)(terminal_starts(terminal_command,"run ")?4u:5u),j=0u;
 		char name[32];while(terminal_command[i]!=0 && j<31u)name[j++]=terminal_command[i++];name[j]=0;
-		uint8_t data[4096];uint16_t length=vfs_read_bytes(name,data,sizeof(data));
+		uint8_t data[1024];uint16_t length=vfs_read_bytes(name,data,sizeof(data));
 		if(length==0u){terminal_append_text("\nFile not found");}
-		else if(!elf_load_and_run(data,length)){terminal_append_text("\nInvalid ELF64 binary");}
+		else if(!elf_load_and_run(data,length) && !pe_load_and_run(data,length)){terminal_append_text("\nInvalid ELF64/PE32+ binary");}
 		return;
 	}
 	if(terminal_starts(terminal_command,"peinfo "))
 	{
 		uint16_t i=7u,j=0u;char name[32];while(terminal_command[i]!=0 && j<31u)name[j++]=terminal_command[i++];name[j]=0;
-		uint8_t data[4096];uint16_t length=vfs_read_bytes(name,data,sizeof(data));
+		uint8_t data[1024];uint16_t length=vfs_read_bytes(name,data,sizeof(data));
 		if(length==0u)terminal_append_text("\nFile not found");
 		else if(!pe_info(data,length))terminal_append_text("\nInvalid PE32+ executable");
 		return;
@@ -97,6 +98,8 @@ static void terminal_parse_command(void)
 		if(command_equals(terminal_command,"ps")){for(uint8_t i=0;i<SCHED_MAX_PROCS;++i){const sched_proc_t* p=sched_get_proc(i);if(p){terminal_append_text("\nPID ");char b[16];uint8_t n=0;uint64_t v=p->pid;if(!v)b[n++]='0';while(v){b[n++]=(char)('0'+v%10u);v/=10u;}while(n)terminal_append_text((char[]){b[--n],0});terminal_append_text(": ");terminal_append_text(p->name);terminal_append_text(" TICKS=");n=0;v=p->ticks;if(!v)b[n++]='0';while(v){b[n++]=(char)('0'+v%10u);v/=10u;}while(n)terminal_append_text((char[]){b[--n],0});}}return;}
 	if(terminal_starts(terminal_command,"spawn ")){char nm[32];uint16_t i=6,j=0;while(terminal_command[i]&&j<31)nm[j++]=terminal_command[i++];nm[j]=0;uint8_t dt[512];uint16_t ln=vfs_read_bytes(nm,dt,sizeof(dt));if(!ln)terminal_append_text("\nFILE NOT FOUND");else{int pid=sched_spawn_elf(nm,dt,ln);if(pid>0){terminal_append_text("\nSPAWNED PID ");char c[2]={(char)('0'+pid),0};terminal_append_text(c);}else terminal_append_text("\nSPAWN FAILED");}return;}
 	if(terminal_starts(terminal_command,"kill ")){uint16_t pid=(uint16_t)(terminal_command[5]-'0');if(sched_kill(pid))terminal_append_text("\nKILLED");else terminal_append_text("\nINVALID PID");return;}
+		if(terminal_starts(terminal_command,"cc ")||terminal_starts(terminal_command,"cpp ")||command_equals(terminal_command,"ipc")){uint16_t s=terminal_starts(terminal_command,"cc ")?3u:4u;char fn[32];uint16_t j=0;while(terminal_command[s]&&j<31)fn[j++]=terminal_command[s++];fn[j]=0;const char* code=vfs_read(fn);if(!code||!code[0])terminal_append_text("\nSOURCE NOT FOUND");else if(cc_compile_source(code,"APP.ELF"))terminal_append_text("\nCOMPILED -> APP.ELF");else terminal_append_text("\nCOMPILE ERROR");return;}
+		if(command_equals(terminal_command,"ipc")){extern uint32_t syscall_ipc_pop(char* out,uint32_t max);char m[64];uint32_t sender=syscall_ipc_pop(m,sizeof(m));if(sender){terminal_append_text("\nIPC MSG: ");terminal_append_text(m);}else terminal_append_text("\nIPC QUEUE EMPTY");return;}
 	if(command_equals(terminal_command,"meminfo"))
 	{
 		uint64_t total=pmm_total_pages();uint64_t used=pmm_used_pages();uint64_t free_pages=total-used;

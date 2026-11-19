@@ -7,6 +7,8 @@
 #define SYS_GET_TICKS 2u
 #define SYS_GET_UPTIME 3u
 #define SYS_CREATE_WINDOW 10u
+#define SYS_SEND_MSG 20u
+#define SYS_RECV_MSG 21u
 #define SYS_EXIT 60u
 
 void syscall_initialize(void);
