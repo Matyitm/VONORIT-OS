@@ -5,6 +5,7 @@
 #include "vfs.h"
 #include "ata.h"
 #include "pci.h"
+#include "vmx.h"
 #include "net.h"
 #include "net_inet.h"
 #include "mm.h"
@@ -100,6 +101,8 @@ static void terminal_parse_command(void)
 	if(terminal_starts(terminal_command,"kill ")){uint16_t pid=(uint16_t)(terminal_command[5]-'0');if(sched_kill(pid))terminal_append_text("\nKILLED");else terminal_append_text("\nINVALID PID");return;}
 		if(terminal_starts(terminal_command,"cc ")||terminal_starts(terminal_command,"cpp ")||command_equals(terminal_command,"ipc")){uint16_t s=terminal_starts(terminal_command,"cc ")?3u:4u;char fn[32];uint16_t j=0;while(terminal_command[s]&&j<31)fn[j++]=terminal_command[s++];fn[j]=0;const char* code=vfs_read(fn);if(!code||!code[0])terminal_append_text("\nSOURCE NOT FOUND");else if(cc_compile_source(code,"APP.ELF"))terminal_append_text("\nCOMPILED -> APP.ELF");else terminal_append_text("\nCOMPILE ERROR");return;}
 		if(command_equals(terminal_command,"ipc")){extern uint32_t syscall_ipc_pop(char* out,uint32_t max);char m[64];uint32_t sender=syscall_ipc_pop(m,sizeof(m));if(sender){terminal_append_text("\nIPC MSG: ");terminal_append_text(m);}else terminal_append_text("\nIPC QUEUE EMPTY");return;}
+		if(terminal_starts(terminal_command,"wget ")){char host[64],fn[32];uint16_t k=5u,hi=0u,fi=0u;while(terminal_command[k]==' ')++k;while(terminal_command[k]&&terminal_command[k]!=' '&&hi<63u)host[hi++]=terminal_command[k++];host[hi]=0;while(terminal_command[k]==' ')++k;while(terminal_command[k]&&terminal_command[k]!=' '&&fi<31u)fn[fi++]=terminal_command[k++];fn[fi]=0;if(!fi){fn[0]='W';fn[1]='E';fn[2]='B';fn[3]='.';fn[4]='T';fn[5]='X';fn[6]='T';fn[7]=0;}char buf[1024];if(!hi||!net_http_get(host,buf,980u)){terminal_append_text("\nWGET FAILED");return;}const char* body=buf;for(uint16_t b=0u;buf[b]&&buf[b+1u];++b){if(buf[b]=='\n'&&buf[b+1u]=='\n'){body=&buf[b+2u];break;}}if(!body[0])body=buf;if(vfs_write(fn,body)){terminal_append_text("\nSAVED -> ");terminal_append_text(fn);}else terminal_append_text("\nVFS FULL");return;}
+	if(terminal_starts(terminal_command,"chat ")){char host[64];uint16_t k=5u,hi=0u,port=0u;while(terminal_command[k]==' ')++k;while(terminal_command[k]&&terminal_command[k]!=' '&&terminal_command[k]!=':'&&hi<63u)host[hi++]=terminal_command[k++];host[hi]=0;if(terminal_command[k]==':'){++k;while(terminal_command[k]>='0'&&terminal_command[k]<='9'){port=(uint16_t)(port*10u+(uint16_t)(terminal_command[k++]-'0'));}}if(port==0u)port=9000u;while(terminal_command[k]==' ')++k;if(!hi||!terminal_command[k]){terminal_append_text("\nUSAGE: CHAT IP MSG");return;}char rep[256];int st=net_udp_chat(host,port,&terminal_command[k],rep,(uint16_t)sizeof(rep));if(st<0)terminal_append_text("\nCHAT NET FAILED");else if(st==0)terminal_append_text("\nSENT (NO REPLY)");else{terminal_append_text("\nCHAT> ");terminal_append_text(rep);}return;}
 	if(command_equals(terminal_command,"meminfo"))
 	{
 		uint64_t total=pmm_total_pages();uint64_t used=pmm_used_pages();uint64_t free_pages=total-used;
@@ -145,6 +148,10 @@ static void terminal_parse_command(void)
 	else if(command_equals(terminal_command,"winver"))
 	{
 		ui_open_winver();
+	}
+	else if(command_equals(terminal_command,"vmxinfo") || terminal_starts(terminal_command,"wget ") || terminal_starts(terminal_command,"chat "))
+	{
+		char vb[256];vmx_format_info(vb,(uint16_t)sizeof(vb));terminal_append_text(vb);
 	}
 	else if(command_equals(terminal_command,"lspci"))
 	{
@@ -197,7 +204,7 @@ static void execute_command(void)
 {
 	terminal_command[terminal_command_length]=0;
 	terminal_parse_command();
-	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir") || terminal_starts(terminal_command,"cat ") || terminal_starts(terminal_command,"write ") || terminal_starts(terminal_command,"run ") || terminal_starts(terminal_command,"exec ") || terminal_starts(terminal_command,"peinfo ") || command_equals(terminal_command,"meminfo") || terminal_starts(terminal_command,"notepad") || command_equals(terminal_command,"sync") || command_equals(terminal_command,"diskinfo") || command_equals(terminal_command,"winver") || command_equals(terminal_command,"lspci") || command_equals(terminal_command,"netinfo"))
+	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir") || terminal_starts(terminal_command,"cat ") || terminal_starts(terminal_command,"write ") || terminal_starts(terminal_command,"run ") || terminal_starts(terminal_command,"exec ") || terminal_starts(terminal_command,"peinfo ") || command_equals(terminal_command,"meminfo") || terminal_starts(terminal_command,"notepad") || command_equals(terminal_command,"sync") || command_equals(terminal_command,"diskinfo") || command_equals(terminal_command,"winver") || command_equals(terminal_command,"lspci") || command_equals(terminal_command,"netinfo") || command_equals(terminal_command,"vmxinfo"))
 	{
 		terminal_command_length=0;terminal_command[0]=0;return;
 	}

@@ -75,7 +75,7 @@ const pci_device_t* pci_device(uint8_t index){if(index>=device_count)return 0;re
 const char* pci_class_name(uint8_t class_code,uint8_t subclass)
 {
 	if(class_code==0x00u) return "Host Bridge";
-	if(class_code==0x01u) return subclass==0x01u?"IDE Controller":"Mass Storage";
+	if(class_code==0x01u) return subclass==0x01u?"IDE Controller":(subclass==0x06u?"SATA AHCI":"Mass Storage");
 	if(class_code==0x02u) return "Ethernet Controller";
 	if(class_code==0x03u) return "VGA Controller";
 	if(class_code==0x06u) return subclass==0x01u?"ISA Bridge":"PCI Bridge";
