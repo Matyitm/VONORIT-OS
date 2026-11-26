@@ -21,7 +21,7 @@ VONORIT-OS is an experimental, freestanding 64-bit (x86_64 long mode) hybrid ope
 | Storage | 16-slot RAM file system with optional ATA PIO disk persistence | `src/vfs.c`, `src/ata.c` |
 | Network | PCI scan, Intel E1000 (DMA rings), ARP, ICMP ping, UDP DNS, TCP/HTTP GET, UDP chat | `src/pci.c`, `src/net.c`, `src/net_inet.c` |
 | Hardware probe | `vmxinfo`: CPUID/MSR Intel VT-x detection, SATA AHCI and USB controller detection (detection only) | `src/vmx.c` |
-| Self-tests | `ktest`: 6 kernel self-tests (page allocator, heap, VFS, scheduler state, PCI, `vmxinfo`) | `src/ktest.c` |
+| Self-tests | `ktest`: 7 kernel self-tests (page allocator, heap, VFS, scheduler state, PCI, `vmxinfo`, process isolation and page-leak check) | `src/ktest.c` |
 
 ## Verification status
 
@@ -29,9 +29,9 @@ VONORIT-OS is an experimental, freestanding 64-bit (x86_64 long mode) hybrid ope
 |---|---|
 | Clean build with `-Wall -Wextra -Werror` | Passing |
 | Boot test in QEMU (`make test64`, reaches "Desktop initialized") | Passing |
-| `ktest` 6/6 at boot | Passing |
-| Live multi-process test (`spawn`, `ps`, `kill`) with per-process CR3 | Implemented, interactive test still pending |
-| Scheduler-aware `SYS_EXIT` | Implemented, interactive test still pending |
+| `ktest` 7/7 at boot (includes per-process page isolation and no page leak after `kill`) | Passing |
+| Manual QEMU test: `spawn worker.elf`, `ps`, `kill 1`, `meminfo` with per-process CR3 (all RAM free again after `kill`) | Passing (2026-11-26, interactive) |
+| Scheduler-aware `SYS_EXIT` (a spawned program exiting by itself) | Implemented, test still pending |
 
 ## Known limitations
 
@@ -70,12 +70,23 @@ After adding default files to `src/vfs.c`, reset the persistent disk image (`fre
 
 ## Roadmap
 
-1. Verify `spawn`/`ps`/`kill` and per-process memory under load.
+1. Test process exit (`SYS_EXIT`) and run many processes under load.
 2. Move `run` onto the scheduler and remove the repeated `gdt_init()` calls.
 3. `copy_from_user` style syscall pointer validation and clean process exit.
 4. Parse the Multiboot memory map; make the allocator RAM-aware.
 5. PE relocations and more `KERNEL32` functions.
 6. SATA AHCI driver, then a VT-x guest engine (long term).
+
+## Versions
+
+Tags are created only for states that were verified (`bash scripts/tag.sh vX.Y.Z "message"` builds, runs the boot self-tests, then tags).
+
+| Tag | Milestone |
+|---|---|
+| `v0.1.0` | Ring 3, ELF64/PE32+ loaders, built-in `cc`/`cpp` |
+| `v0.2.0` | Live network (`wget`, `chat`) and `vmxinfo` |
+| `v0.3.0` | `ktest` self-tests and the `build.sh` workflow |
+| `v0.4.0` | Per-process page tables (CR3), per-task kernel stack, `fxsave`/`fxrstor`; verified by `ktest` t7 and a manual QEMU `spawn`/`ps`/`kill` run |
 
 ## License
 
