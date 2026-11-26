@@ -1,80 +1,82 @@
 # VONORIT-OS
 
-VONORIT-OS is an experimental, modern-first hybrid operating-system platform written primarily in C. Its long-term goal is to run native VONORIT software, modern Linux/POSIX applications, and Windows applications, while supporting older systems through emulation and complete operating systems through virtualization.
+VONORIT-OS is an experimental, freestanding 64-bit (x86_64 long mode) hybrid operating-system prototype written from scratch in C11 and NASM. It boots through GRUB (Multiboot1), draws a Windows-beta-style desktop, runs Ring 3 programs (ELF64 and a minimal Win32 PE32+ loader), schedules them preemptively and has a small live TCP/IP stack.
 
-## Current milestone
+**Status: hobby prototype.** It is not a production OS and it is not yet Windows- or Linux-compatible. Everything below is described as it actually is today.
 
-- Freestanding 32-bit bootstrap and x86_64 long-mode kernel
-- Multiboot-compatible GRUB boot and 32-bit/x86_64 ISO targets
-- 800x600 RAM backbuffer GUI with interrupt-safe presentation
-- Chicago, Whistler, and Longhorn beta desktop themes
-- Draggable, focusable, Z-ordered Terminal, Files, About, Notepad, and WINVER windows
-- IDT/PIC exception and hardware IRQ handling
-- PS/2 keyboard and mouse support
-- PIT 100 Hz uptime timer and CMOS RTC live clock
-- In-memory RAM VFS with interactive Files browser and Notepad
-- Optional primary ATA PIO disk persistence for VFS data
-- 32-bit VGA fallback remains available
+*Last updated: 2026-11-24*
 
-The repository includes a usable kernel desktop prototype, not a production-complete compatibility OS. Windows, Linux, POSIX, macOS, executable loading, processes, user mode, networking, and complete application compatibility remain staged work. The compatibility architecture is documented in [docs/architecture.md](docs/architecture.md), and target status is tracked in [docs/compatibility-matrix.md](docs/compatibility-matrix.md).
+## What is implemented
 
-The primary x86_64 path enables long mode with identity-mapped pages and a framebuffer desktop. The 32-bit kernel remains available for bootstrap and legacy validation.
+| Area | Details | Source |
+|---|---|---|
+| Boot | GRUB Multiboot1, long-mode switch, 4 GiB identity map, 800x600x24 framebuffer, serial log | `src/boot64.asm`, `src/kernel64.c` |
+| Memory | 128 MB bitmap page allocator (4 KiB pages) and a 16 MB kernel heap; `kfree` tracks exact block counts, allocator paths are IRQ-safe | `src/mm.c` |
+| Protection | 64-bit GDT/TSS, Ring 0 / Ring 3, per-task `TSS.RSP0` | `src/gdt.c`, `src/gdt_asm.asm` |
+| Syscalls | `INT 0x80`: `WRITE=1`, `GET_TICKS=2`, `GET_UPTIME=3`, `CREATE_WINDOW=10`, `SEND_MSG=20`, `RECV_MSG=21`, `EXIT=60` | `src/syscall.c` |
+| Executables | ELF64 loader; Win32 PE32+ loader with a few `KERNEL32.DLL` import stubs | `src/elf.c`, `src/pe.c` |
+| Compiler | Tiny built-in C/C++ compiler (`cc`, `cpp`) that emits ELF64 binaries | `src/cc.c` |
+| Scheduler | 100 Hz PIT round-robin, up to 8 processes; per-process page tables (CR3), `fxsave`/`fxrstor` state, per-task kernel stack | `src/sched.c` |
+| GUI | RAM back-buffered desktop, Chicago / Whistler / Longhorn themes, draggable Z-ordered windows, PS/2 mouse, Hungarian/US keyboard layouts | `src/ui.c`, `src/input.c` |
+| Storage | 16-slot RAM file system with optional ATA PIO disk persistence | `src/vfs.c`, `src/ata.c` |
+| Network | PCI scan, Intel E1000 (DMA rings), ARP, ICMP ping, UDP DNS, TCP/HTTP GET, UDP chat | `src/pci.c`, `src/net.c`, `src/net_inet.c` |
+| Hardware probe | `vmxinfo`: CPUID/MSR Intel VT-x detection, SATA AHCI and USB controller detection (detection only) | `src/vmx.c` |
+| Self-tests | `ktest`: 6 kernel self-tests (page allocator, heap, VFS, scheduler state, PCI, `vmxinfo`) | `src/ktest.c` |
 
-Applications are currently kernel-rendered demonstrations: Terminal, Files, Notepad, About, and WINVER. Real user-space applications require memory protection, scheduling, system calls, an executable loader, and IPC.
+## Verification status
 
-Terminal commands include `help`, `ver`, `clear`/`cls`, `uptime`/`time`, `ls`/`dir`, `cat`, `write`, `notepad`, `sync`, `diskinfo`, `winver`, and theme commands.
+| Item | State |
+|---|---|
+| Clean build with `-Wall -Wextra -Werror` | Passing |
+| Boot test in QEMU (`make test64`, reaches "Desktop initialized") | Passing |
+| `ktest` 6/6 at boot | Passing |
+| Live multi-process test (`spawn`, `ps`, `kill`) with per-process CR3 | Implemented, interactive test still pending |
+| Scheduler-aware `SYS_EXIT` | Implemented, interactive test still pending |
 
-## Toolchain
+## Known limitations
 
-The recommended development environment on Windows is WSL2 with a Linux distribution. Install:
+- `run` (the direct ELF/PE path) still loads into the shared user range and re-initialises the GDT on every launch. Only `spawn` uses per-process address spaces. Fixing this is next.
+- Syscall pointers are checked by address range only (no `copy_from_user`); a bad user pointer can still fault the kernel.
+- The PE loader uses a fixed image base, applies no relocations, and stubs only `GetStdHandle`, `WriteConsoleA`, `GetTickCount` and `ExitProcess`.
+- The page allocator and heap assume RAM up to `0x0A000000` (160 MB). The Multiboot memory map is not parsed yet, so run QEMU with at least `-m 256`.
+- The VFS holds 16 files of at most 1023 bytes each.
+- The network stack assumes QEMU user-mode networking (static `10.0.2.x` addresses).
+- No USB or AHCI driver and no VT-x guest engine yet (`vmxinfo` only detects hardware).
+- The compatibility matrix in `docs/` is planning data, not a feature list.
 
-- GNU Make
-- NASM
-- An `i686-elf-gcc` cross-compiler for the current bootstrap milestone
-- GRUB utilities, including `grub-mkrescue` and `grub-file`
-- QEMU
-- `xorriso`, used by `grub-mkrescue`
+## Build and run
 
-A native Linux environment can use the same tools.
+Recommended environment: Windows 11 + WSL2 (Ubuntu), or native Linux.
 
-## Build
+Requirements: GNU Make, `gcc` (64-bit kernel), NASM, GRUB tools (`grub-mkrescue`, `grub-file`), `xorriso`, QEMU. The legacy 32-bit bootstrap additionally needs `i686-elf-gcc`.
 
-From the repository root:
-
-```sh
-make
-make check
-make run
-
-# x86_64 path
-make x86_64
-make check64
-make iso64
-make run64
+```bash
+bash scripts/build.sh iso    # build the ISO and copy it to C:\Users\Public
+bash scripts/build.sh test   # build + headless QEMU boot test + ktest
+bash scripts/build.sh run    # build + start the QEMU GUI
+bash scripts/build.sh fresh  # zero the disk image, then start the QEMU GUI
 ```
 
-The 32-bit ISO is written to `build/vonoritos.iso`; the x86_64 ISO is written to `build/vonoritos-x86_64.iso`.
+After adding default files to `src/vfs.c`, reset the persistent disk image (`fresh` does this) because an old image overrides the defaults.
 
-Run the graphical prototype with `make run64`. QEMU should open a framebuffer desktop when GRUB and the firmware provide the requested graphics mode. If no direct-color framebuffer is available, the kernel falls back to VGA text output with a diagnostic message.
+## Terminal commands
 
-If the cross-compiler uses a different prefix, override it:
+`help`, `ver`, `clear`, `uptime`, `ls`, `cat`, `write`, `notepad`, `sync`, `diskinfo`, `meminfo`, `winver`, `run`, `peinfo`, `cc`, `cpp`, `ps`, `spawn`, `kill`, `lspci`, `netinfo`, `ping`, `nslookup`, `curl`, `wget`, `chat`, `vmxinfo`, `ktest`, plus the theme commands.
 
-```sh
-make CROSS=i686-elf-
-```
+## Documentation
+
+- [docs/architecture.md](docs/architecture.md): compatibility architecture
+- [docs/compatibility-matrix.md](docs/compatibility-matrix.md): target tracking
 
 ## Roadmap
 
-1. Complete automated x86_64 boot, serial, disk, and desktop smoke tests.
-2. Implement physical/virtual memory, heap allocation, scheduling, processes, user mode, IPC, and a stable system-call ABI.
-3. Expand storage and partition/filesystem support beyond the RAM VFS and ATA PIO prototype.
-4. Add PCI enumeration, keyboard/mouse abstraction, display, networking, and security services.
-5. Convert kernel demo applications into ELF-based user-space programs with GUI IPC.
-6. Implement a measured POSIX/Linux compatibility subset and conformance tests.
-7. Implement PE loading and a Windows API runtime, beginning with console applications.
-8. Add graphics, audio, networking, and installer/runtime integration.
-9. Add DOS emulation and authorized Windows/Linux/macOS guest virtualization.
+1. Verify `spawn`/`ps`/`kill` and per-process memory under load.
+2. Move `run` onto the scheduler and remove the repeated `gdt_init()` calls.
+3. `copy_from_user` style syscall pointer validation and clean process exit.
+4. Parse the Multiboot memory map; make the allocator RAM-aware.
+5. PE relocations and more `KERNEL32` functions.
+6. SATA AHCI driver, then a VT-x guest engine (long term).
 
-This milestone remains experimental and does not claim complete Windows, Linux, POSIX, or macOS compatibility. Native compatibility work uses public specifications and clean-room implementations. Compatibility claims require repeatable automated validation on a documented hardware profile.
+## License
 
-The compatibility architecture is documented in [docs/architecture.md](docs/architecture.md), and target status is tracked in [docs/compatibility-matrix.md](docs/compatibility-matrix.md).
+Released under the [MIT License](LICENSE).
