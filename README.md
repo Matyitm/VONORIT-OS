@@ -4,7 +4,7 @@ VONORIT-OS is an experimental, freestanding 64-bit (x86_64 long mode) hybrid ope
 
 **Status: hobby prototype.** It is not a production OS and it is not yet Windows- or Linux-compatible. Everything below is described as it actually is today.
 
-*Last updated: 2026-11-24*
+*Last updated: 2026-11-26*
 
 ## What is implemented
 
