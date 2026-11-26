@@ -148,8 +148,11 @@ $(BUILD)/cc.o: src/cc.c src/cc.h src/vfs.h | $(BUILD)
 $(BUILD)/vmx.o: src/vmx.c src/vmx.h src/pci.h | $(BUILD)
 	$(CC64) $(CFLAGS64) -c $< -o $@
 
-$(KERNEL64): $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o $(BUILD)/ata.o $(BUILD)/pci.o $(BUILD)/net.o $(BUILD)/net_inet.o $(BUILD)/mm.o $(BUILD)/gdt.o $(BUILD)/gdt_asm.o $(BUILD)/syscall.o $(BUILD)/elf.o $(BUILD)/pe.o $(BUILD)/sched.o $(BUILD)/cc.o $(BUILD)/vmx.o linker64.ld
-	$(LD64) -T linker64.ld -ffreestanding -O2 -nostdlib -m64 -no-pie -Wl,--build-id=none -o $@ $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o $(BUILD)/ata.o $(BUILD)/pci.o $(BUILD)/net.o $(BUILD)/net_inet.o $(BUILD)/mm.o $(BUILD)/gdt.o $(BUILD)/gdt_asm.o $(BUILD)/syscall.o $(BUILD)/elf.o $(BUILD)/pe.o $(BUILD)/sched.o $(BUILD)/cc.o $(BUILD)/vmx.o
+$(BUILD)/ktest.o: src/ktest.c src/ktest.h src/mm.h src/vfs.h src/sched.h src/pci.h src/vmx.h | $(BUILD)
+	$(CC64) $(CFLAGS64) -c $< -o $@
+
+$(KERNEL64): $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o $(BUILD)/ata.o $(BUILD)/pci.o $(BUILD)/net.o $(BUILD)/net_inet.o $(BUILD)/mm.o $(BUILD)/gdt.o $(BUILD)/gdt_asm.o $(BUILD)/syscall.o $(BUILD)/elf.o $(BUILD)/pe.o $(BUILD)/sched.o $(BUILD)/cc.o $(BUILD)/vmx.o $(BUILD)/ktest.o linker64.ld
+	$(LD64) -T linker64.ld -ffreestanding -O2 -nostdlib -m64 -no-pie -Wl,--build-id=none -o $@ $(BUILD)/boot64.o $(BUILD)/kernel64.o $(BUILD)/interrupts64.o $(BUILD)/interrupts64_asm.o $(BUILD)/ui.o $(BUILD)/idt.o $(BUILD)/input.o $(BUILD)/timer.o $(BUILD)/vfs.o $(BUILD)/ata.o $(BUILD)/pci.o $(BUILD)/net.o $(BUILD)/net_inet.o $(BUILD)/mm.o $(BUILD)/gdt.o $(BUILD)/gdt_asm.o $(BUILD)/syscall.o $(BUILD)/elf.o $(BUILD)/pe.o $(BUILD)/sched.o $(BUILD)/cc.o $(BUILD)/vmx.o $(BUILD)/ktest.o
 
 iso64: $(ISO64)
 
@@ -164,11 +167,11 @@ check64: $(KERNEL64)
 
 run64: $(ISO64)
 	$(QEMU_RUN64_STAGE)
-	$(QEMU_RUN64) -boot order=d -drive file="$(QEMU_RUN64_ISO)",format=raw,media=cdrom
+	$(QEMU_RUN64) -m 256 -boot order=d -drive file="$(QEMU_RUN64_ISO)",format=raw,media=cdrom
 
 test64: $(ISO64)
 	$(QEMU_RUN64_STAGE)
-	@timeout 3s $(QEMU_RUN64) -boot order=d -drive file="$(QEMU_RUN64_ISO)",format=raw,media=cdrom -display none -serial stdio -monitor none -no-reboot -no-shutdown >$(BUILD)/test64.log 2>&1; status=$$?; cat $(BUILD)/test64.log; if [ $$status -ne 0 ] && [ $$status -ne 124 ]; then exit $$status; fi; grep -q "Desktop initialized" $(BUILD)/test64.log
+	@timeout 3s $(QEMU_RUN64) -m 256 -boot order=d -drive file="$(QEMU_RUN64_ISO)",format=raw,media=cdrom -display none -serial stdio -monitor none -no-reboot -no-shutdown >$(BUILD)/test64.log 2>&1; status=$$?; cat $(BUILD)/test64.log; if [ $$status -ne 0 ] && [ $$status -ne 124 ]; then exit $$status; fi; grep -q "Desktop initialized" $(BUILD)/test64.log
 
 clean:
 	rm -rf $(BUILD)

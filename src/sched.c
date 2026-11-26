@@ -74,6 +74,7 @@ int sched_kill(uint16_t pid){
 	else{ free_proc_vm((uint8_t)pid); procs[pid].used=0u; procs[pid].state=0u; }
 	__asm__ volatile("push %0; popfq"::"r"(rf):"memory","cc"); return 1;
 }
+uint16_t sched_current_pid(void){return (uint16_t)current_idx;}
 void sched_exit_current(void){ if(current_idx!=0u&&current_idx<SCHED_MAX_PROCS) procs[current_idx].state=2u; }
 uint64_t sched_on_tick(uint64_t current_rsp){
 	if(!sched_ready) return current_rsp;

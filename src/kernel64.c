@@ -17,6 +17,7 @@
 #include "sched.h"
 #include "syscall.h"
 #include "vfs.h"
+#include "ktest.h"
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
@@ -304,6 +305,7 @@ void kernel_main64(uint32_t multiboot_magic, uint32_t multiboot_information)
 	sched_init();
 	syscall_initialize();
 	vfs_init();
+	{ char kbuf[64]; (void)ktest_run_all(kbuf,(uint16_t)sizeof(kbuf)); serial_write(kbuf); serial_write("\r\n"); }
 	net_init();
 	ui_initialize(&framebuffer);
 	idt_initialize(&framebuffer);

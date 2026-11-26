@@ -6,6 +6,7 @@
 #include "ata.h"
 #include "pci.h"
 #include "vmx.h"
+#include "ktest.h"
 #include "net.h"
 #include "net_inet.h"
 #include "mm.h"
@@ -149,6 +150,7 @@ static void terminal_parse_command(void)
 	{
 		ui_open_winver();
 	}
+	else if(command_equals(terminal_command,"ktest")){char kb[64];(void)ktest_run_all(kb,(uint16_t)sizeof(kb));terminal_append_text(kb);}
 	else if(command_equals(terminal_command,"vmxinfo") || terminal_starts(terminal_command,"wget ") || terminal_starts(terminal_command,"chat "))
 	{
 		char vb[256];vmx_format_info(vb,(uint16_t)sizeof(vb));terminal_append_text(vb);
@@ -204,7 +206,7 @@ static void execute_command(void)
 {
 	terminal_command[terminal_command_length]=0;
 	terminal_parse_command();
-	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir") || terminal_starts(terminal_command,"cat ") || terminal_starts(terminal_command,"write ") || terminal_starts(terminal_command,"run ") || terminal_starts(terminal_command,"exec ") || terminal_starts(terminal_command,"peinfo ") || command_equals(terminal_command,"meminfo") || terminal_starts(terminal_command,"notepad") || command_equals(terminal_command,"sync") || command_equals(terminal_command,"diskinfo") || command_equals(terminal_command,"winver") || command_equals(terminal_command,"lspci") || command_equals(terminal_command,"netinfo") || command_equals(terminal_command,"vmxinfo"))
+	if(terminal_starts(terminal_command,"ls") || terminal_starts(terminal_command,"dir") || terminal_starts(terminal_command,"cat ") || terminal_starts(terminal_command,"write ") || terminal_starts(terminal_command,"run ") || terminal_starts(terminal_command,"exec ") || terminal_starts(terminal_command,"peinfo ") || command_equals(terminal_command,"meminfo") || terminal_starts(terminal_command,"notepad") || command_equals(terminal_command,"sync") || command_equals(terminal_command,"diskinfo") || command_equals(terminal_command,"winver") || command_equals(terminal_command,"lspci") || command_equals(terminal_command,"netinfo") || command_equals(terminal_command,"vmxinfo") || command_equals(terminal_command,"ktest"))
 	{
 		terminal_command_length=0;terminal_command[0]=0;return;
 	}
