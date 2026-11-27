@@ -43,7 +43,6 @@ uint8_t elf_load_and_run(const uint8_t* data,uint32_t size)
 	}
 	volatile uint8_t* stack=(volatile uint8_t*)0x007FF000u;
 	for(uint32_t i=0u;i<4096u;++i) stack[i]=0u;
-	gdt_init();
 	enter_usermode(header->entry,0x007FFFF0u);
 	return 1u;
 }
