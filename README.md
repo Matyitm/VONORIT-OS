@@ -4,7 +4,7 @@ VONORIT-OS is an experimental, freestanding 64-bit (x86_64 long mode) hybrid ope
 
 **Status: hobby prototype.** It is not a production OS and it is not yet Windows- or Linux-compatible. Everything below is described as it actually is today.
 
-*Last updated: 2026-11-26*
+*Last updated: 2026-11-27*
 
 ## What is implemented
 
@@ -31,7 +31,7 @@ VONORIT-OS is an experimental, freestanding 64-bit (x86_64 long mode) hybrid ope
 | Boot test in QEMU (`make test64`, reaches "Desktop initialized") | Passing |
 | `ktest` 7/7 at boot (includes per-process page isolation and no page leak after `kill`) | Passing |
 | Manual QEMU test: `spawn worker.elf`, `ps`, `kill 1`, `meminfo` with per-process CR3 (all RAM free again after `kill`) | Passing (2026-11-26, interactive) |
-| Scheduler-aware `SYS_EXIT` (a spawned program exiting by itself) | Implemented, test still pending |
+| Scheduler-aware `SYS_EXIT`: `spawn hello.elf` exits by itself (`[EXIT CODE 0]`), process disappears from `ps`, RAM shows fully free | Passing (2026-11-27, interactive) |
 
 ## Known limitations
 
@@ -70,7 +70,7 @@ After adding default files to `src/vfs.c`, reset the persistent disk image (`fre
 
 ## Roadmap
 
-1. Test process exit (`SYS_EXIT`) and run many processes under load.
+1. Run many processes under load; make `meminfo` report exact pages, not only MB.
 2. Move `run` onto the scheduler and remove the repeated `gdt_init()` calls.
 3. `copy_from_user` style syscall pointer validation and clean process exit.
 4. Parse the Multiboot memory map; make the allocator RAM-aware.
